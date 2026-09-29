@@ -155,6 +155,10 @@ class Alumno:
 
             raise ValueError("Ya existe un alumno con ese DNI o el curso no existe.")
 
+        except sqlite3.Error as e:
+
+            raise RuntimeError(f"Error al guardar alumno: {e}")
+
     # -------------------------------------------------------------------------
     # READ
     # -------------------------------------------------------------------------

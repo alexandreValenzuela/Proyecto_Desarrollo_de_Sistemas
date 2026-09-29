@@ -47,6 +47,34 @@ def cargar_datos_iniciales():
         )
 
         # ---------------------------------------------------------------------
+        # CURSOS
+        # El CHECK de database/setup.py exige 4 caracteres con el patron
+        # [0-9][A-Z][0-9][A-Z] (ej: 1A1A). "1°A" o "Primero A" son invalidos.
+        # ---------------------------------------------------------------------
+
+        cursos = [
+            ("1A1A",),
+            ("1B1B",),
+            ("2A2A",),
+            ("2B2B",),
+            ("3A3A",),
+            ("3B3B",)
+        ]
+
+        cursor.executemany(
+            """
+            INSERT OR IGNORE INTO curso
+            (
+                curso
+            )
+
+            VALUES (?)
+
+            """,
+            cursos
+        )
+
+        # ---------------------------------------------------------------------
         # PERSONAL
         # ---------------------------------------------------------------------
 
