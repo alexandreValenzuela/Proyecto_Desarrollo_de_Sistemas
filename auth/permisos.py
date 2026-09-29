@@ -41,3 +41,16 @@ def requiere_permiso(nivel_minimo):
         return envoltura
 
     return decorador
+
+
+def tiene_permiso(usuario, nivel_minimo):
+    """
+    Indica si el usuario alcanza el nivel de permisos requerido.
+
+    Pensado para la capa de presentacion, donde el usuario es un dict
+    con 'nivel_permisos' y no el primer argumento posicional de una funcion.
+    """
+    if usuario is None:
+        return False
+
+    return usuario.get("nivel_permisos", 0) >= nivel_minimo

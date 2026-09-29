@@ -3,7 +3,8 @@ Componentes reutilizables de NeoED — Widgets nombrados segun Draw.io SSOT.
 
 Cada widget tiene un objectName que el QSS global estiliza automaticamente.
 """
-from PySide6.QtWidgets import QPushButton, QLabel, QLineEdit, QComboBox
+from PySide6.QtWidgets import (QPushButton, QLabel, QLineEdit, QComboBox,
+                                QMessageBox)
 from PySide6.QtCore import Qt
 
 
@@ -145,3 +146,13 @@ def ErrorLabel(texto: str = "") -> QLabel:
         background: transparent;
     """)
     return label
+
+
+def alerta_error(parent, titulo, mensaje):
+    """Cartel grafico de alerta para errores de validacion o de sistema."""
+    QMessageBox.warning(parent, titulo, mensaje)
+
+
+def alerta_exito(parent, titulo, mensaje):
+    """Cartel grafico de confirmacion."""
+    QMessageBox.information(parent, titulo, mensaje)
