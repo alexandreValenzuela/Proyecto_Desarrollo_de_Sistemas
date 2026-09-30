@@ -1,5 +1,7 @@
 from models.personal import Personal
 from models.alumno import Alumno
+from models.acceso import Acceso
+from auth.permisos import PermisoDenegadoError
 
 
 def login_unificado(dni, password):
@@ -14,12 +16,34 @@ def login_unificado(dni, password):
 
     Puede propagar PermisoDenegadoError si el alumno existe pero
     todavía no fue autorizado.
+
+    Registra **exactamente un** intento en la tabla accesos, tenga o no
+    éxito. Antes cada login de alumno dejaba dos filas: el intento fallido
+    contra 'personal' y luego el exitoso contra 'alumnos'. Eso duplicaba
+    también los intentos fallidos, que son los que sirven para detectar
+    fuerza bruta. Por eso los dos login internos se llaman con
+    registrar_acceso=False y el registro se hace acá, una sola vez.
     """
 
-    usuario = Personal.login(dni, password)
+    usuario = Personal.login(dni, password, registrar_acceso=False)
 
     if usuario:
+        Acceso.registrar(dni, exitoso=True)
         usuario["tipo"] = "personal"
         return usuario
 
-    return Alumno.login(dni, password)
+    try:
+        alumno = Alumno.login(dni, password, registrar_acceso=False)
+    except PermisoDenegadoError:
+        # El alumno existe y la contraseña es correcta, pero todavia no
+        # fue autorizado. Es un intento fallido: queda registrado.
+        Acceso.registrar(dni, exitoso=False)
+        raise
+
+    if alumno:
+        Acceso.registrar(dni, exitoso=True)
+        alumno["tipo"] = "alumno"
+        return alumno
+
+    Acceso.registrar(dni, exitoso=False)
+    return None

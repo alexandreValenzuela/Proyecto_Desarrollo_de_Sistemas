@@ -243,7 +243,78 @@ def migrar_notas_con_alumno():
     return 1
 
 
+def _asegurar_indice(cursor, tabla, indice, columnas):
+    """Crea un indice solo si la tabla tiene las columnas indicadas."""
+    existentes = _columnas_existentes(cursor, tabla)
+
+    if not existentes or not set(columnas).issubset(existentes):
+        return False
+
+    cursor.execute(
+        f"CREATE INDEX IF NOT EXISTS {indice} ON {tabla}({', '.join(columnas)})"
+    )
+    return True
+
+
+def migrar_ausencias_sin_duplicados():
+    """
+    Impide registrar dos veces la misma ausencia.
+
+    La tabla "ausencias" permitia cargar varias filas para el mismo alumno
+    en la misma fecha. Se agrega UNIQUE(dni, fecha): una ausencia por dia
+    y por alumno, que es como funciona un registro de asistencia.
+
+    La tabla no cambia de columnas, solo se agrega la restriccion, asi que
+    la reconstruccion conserva todos los datos existentes.
+    """
+    with obtener_conexion() as conexion:
+        cursor = conexion.cursor()
+
+        if not _tabla_existe(cursor, "ausencias"):
+            return 0
+
+        # Detectar si ya existe la restriccion en el esquema guardado.
+        esquema = cursor.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='ausencias'"
+        ).fetchone()[0]
+
+        if "UNIQUE" in esquema.upper():
+            _asegurar_indice(cursor, "ausencias", "idx_ausencias_dni", ["dni"])
+            conexion.commit()
+            return 0
+
+        _reconstruir_tabla(
+            cursor,
+            "ausencias",
+            '''
+            CREATE TABLE {tabla} (
+                ausencia_id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                dni INTEGER NOT NULL,
+
+                fecha DATE NOT NULL,
+
+                justificada BOOLEAN NOT NULL,
+
+                FOREIGN KEY(dni)
+                REFERENCES alumnos(dni),
+
+                UNIQUE(dni, fecha)
+            )
+            ''',
+            [("ausencia_id", "ausencia_id"), ("dni", "dni"),
+             ("fecha", "fecha"), ("justificada", "justificada")]
+        )
+
+        _asegurar_indice(cursor, "ausencias", "idx_ausencias_dni", ["dni"])
+
+        conexion.commit()
+
+    return 1
+
+
 def migraciones():
     """Punto de entrada. Ejecutar en cada arranque de la aplicacion."""
     migrar_passwords_a_hash()
     migrar_notas_con_alumno()
+    migrar_ausencias_sin_duplicados()
