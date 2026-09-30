@@ -77,6 +77,15 @@ class VistaMisNotas(QWidget):
         self.tabla.setMinimumSize(700, 400)
         layout.addWidget(self.tabla)
 
+        # Promedio general (siempre sobre todas las materias).
+        self.lbl_promedio = QLabel("")
+        self.lbl_promedio.setObjectName("ResumenLinea")
+        self.lbl_promedio.setAlignment(Qt.AlignCenter)
+        self.lbl_promedio.setStyleSheet(
+            "font-size: 22px; font-weight: bold; margin-top: 8px;"
+        )
+        layout.addWidget(self.lbl_promedio)
+
     def cargar_datos(self):
         dni = self.usuario.get("dni")
 
@@ -121,3 +130,17 @@ class VistaMisNotas(QWidget):
 
         if not notas:
             self.lbl_error.setText("Todavía no tenés notas cargadas.")
+
+        texto_promedio = self._texto_promedio(dni)
+        self.lbl_promedio.setText(texto_promedio)
+
+    def _texto_promedio(self, dni):
+        try:
+            promedio = Nota.promedio_por_alumno(dni)
+        except RuntimeError:
+            return ""
+
+        if promedio is None:
+            return "Promedio general: sin notas"
+
+        return f"Promedio general: {promedio:.1f}"

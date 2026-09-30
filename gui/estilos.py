@@ -133,6 +133,27 @@ QLabel#SectionTitle {
 }
 
 /* ============================================================================
+   RESUMEN DEL DASHBOARD (Vista Bienvenido)
+   ============================================================================ */
+QLabel#ResumenTitulo {
+    color: #334155;
+    font-size: 16px;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding: 12px 0 4px 0;
+    background: transparent;
+    border: none;
+}
+
+QLabel#ResumenLinea {
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 20px;
+    color: #0F172A;
+    background: transparent;
+    border: none;
+}
+
+/* ============================================================================
    BOTON PRIMARIO (Iniciar Sesion, Ingresar, Crear Alumno, Guardar, Registrar)
    ============================================================================ */
 QPushButton#PrimaryButton {

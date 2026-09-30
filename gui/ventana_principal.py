@@ -32,6 +32,8 @@ from gui.vistas.vista_profesores import VistaProfesores
 from gui.vistas.vista_mis_notas import VistaMisNotas
 from gui.vistas.vista_mis_ausencias import VistaMisAusencias
 from gui.vistas.vista_mis_datos import VistaMisDatos
+from gui.vistas.vista_accesos import VistaAccesos
+from gui.vistas.vista_cambiar_password import VistaCambiarPassword
 
 # Indices de stack_vistas.
 VISTA_BIENVENIDO = 0
@@ -45,6 +47,8 @@ VISTA_AUSENCIAS = 7
 VISTA_MIS_NOTAS = 8
 VISTA_MIS_AUSENCIAS = 9
 VISTA_MIS_DATOS = 10
+VISTA_ACCESOS = 11
+VISTA_CAMBIAR_PASSWORD = 12
 
 # Niveles minimos de las secciones restringidas.
 NIVEL_ALUMNOS = 3            # ver / cargar alumnos (alta institucional)
@@ -53,6 +57,7 @@ NIVEL_REGISTRAR_PERSONAL = 10
 NIVEL_PROFESORES = 3         # listado de personal (expone DNI del staff)
 NIVEL_NOTAS = 5
 NIVEL_AUSENCIAS = 3
+NIVEL_ACCESOS = 5            # historial de intentos de login
 
 
 class VentanaPrincipal(QMainWindow):
@@ -67,6 +72,7 @@ class VentanaPrincipal(QMainWindow):
         VISTA_PROFESORES: NIVEL_PROFESORES,
         VISTA_NOTAS: NIVEL_NOTAS,
         VISTA_AUSENCIAS: NIVEL_AUSENCIAS,
+        VISTA_ACCESOS: NIVEL_ACCESOS,
     }
 
     # Vistas exclusivas del alumno (tipo=alumno): se abren solo con su DNI.
@@ -209,6 +215,10 @@ class VentanaPrincipal(QMainWindow):
         self.vista_mis_ausencias = VistaMisAusencias(self.usuario)
         self.vista_mis_datos = VistaMisDatos(self.usuario)
 
+        # Vistas para todo tipo de cuenta.
+        self.vista_accesos = VistaAccesos(self.usuario, on_volver=al_menu)
+        self.vista_cambiar_password = VistaCambiarPassword(self.usuario)
+
         self.stack_vistas.addWidget(self.vista_bienvenido)             # 0
         self.stack_vistas.addWidget(self.vista_ver_alumnos)            # 1
         self.stack_vistas.addWidget(self.vista_cargar_alumnos)         # 2
@@ -220,6 +230,8 @@ class VentanaPrincipal(QMainWindow):
         self.stack_vistas.addWidget(self.vista_mis_notas)              # 8
         self.stack_vistas.addWidget(self.vista_mis_ausencias)          # 9
         self.stack_vistas.addWidget(self.vista_mis_datos)              # 10
+        self.stack_vistas.addWidget(self.vista_accesos)                # 11
+        self.stack_vistas.addWidget(self.vista_cambiar_password)       # 12
 
         self.stack_vistas.setCurrentIndex(VISTA_BIENVENIDO)
 
@@ -256,6 +268,11 @@ class VentanaPrincipal(QMainWindow):
 
         self.btn_mis_datos = self._boton_sidebar("Mis Datos", VISTA_MIS_DATOS)
         layout.addWidget(self.btn_mis_datos)
+
+        self.btn_cambiar_password = self._boton_sidebar(
+            "Cambiar Contraseña", VISTA_CAMBIAR_PASSWORD
+        )
+        layout.addWidget(self.btn_cambiar_password)
 
         self.btn_mis_notas.setVisible(self.es_alumno)
         self.btn_mis_ausencias.setVisible(self.es_alumno)
@@ -313,10 +330,18 @@ class VentanaPrincipal(QMainWindow):
         )
         layout.addWidget(self.btn_ausencias)
 
+        self.btn_accesos = self._boton_sidebar(
+            "Historial de Accesos", VISTA_ACCESOS
+        )
+        layout.addWidget(self.btn_accesos)
+
         # Secciones restringidas: ocultas, nunca deshabilitadas.
         self.btn_notas.setVisible(tiene_permiso(self.usuario, NIVEL_NOTAS))
         self.btn_ausencias.setVisible(
             tiene_permiso(self.usuario, NIVEL_AUSENCIAS)
+        )
+        self.btn_accesos.setVisible(
+            tiene_permiso(self.usuario, NIVEL_ACCESOS)
         )
 
         # Un grupo sin botones visibles no muestra su rotulo.
@@ -364,12 +389,15 @@ class VentanaPrincipal(QMainWindow):
         """
         grupos = {
             self.lbl_grupo_mi_cuenta: [
-                self.btn_mis_notas, self.btn_mis_ausencias, self.btn_mis_datos
+                self.btn_mis_notas, self.btn_mis_ausencias,
+                self.btn_mis_datos, self.btn_cambiar_password
             ],
             self.lbl_grupo_alumnos: [self.btn_ver, self.btn_cargar],
             self.lbl_grupo_personal: [self.btn_autorizar, self.btn_registrar],
             self.lbl_grupo_profesores: [self.btn_profes],
-            self.lbl_grupo_notas: [self.btn_notas, self.btn_ausencias],
+            self.lbl_grupo_notas: [
+                self.btn_notas, self.btn_ausencias, self.btn_accesos
+            ],
         }
         for label, botones in grupos.items():
             label.setVisible(any(not b.isHidden() for b in botones))
@@ -433,6 +461,8 @@ class VentanaPrincipal(QMainWindow):
             self.vista_mis_ausencias.cargar_datos()
         elif index_vista == VISTA_MIS_DATOS:
             self.vista_mis_datos.cargar_datos()
+        elif index_vista == VISTA_ACCESOS:
+            self.vista_accesos.cargar_datos()
 
     def _refrescar_tabla_alumnos(self):
         self.vista_ver_alumnos.cargar_datos()

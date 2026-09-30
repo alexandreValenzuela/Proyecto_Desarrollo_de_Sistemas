@@ -58,6 +58,12 @@ class VistaNotas(QWidget):
         self.lbl_error.setStyleSheet("color: #ff0000; font-size: 16px; font-weight: bold;")
         layout.addWidget(self.lbl_error)
 
+        # Boletin del alumno filtrado por DNI
+        self.lbl_boletin = QLabel("")
+        self.lbl_boletin.setObjectName("ResumenLinea")
+        self.lbl_boletin.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.lbl_boletin)
+
         # Tabla
         self.tabla = QTableWidget()
         self.tabla.setColumnCount(5)
@@ -233,6 +239,7 @@ class VistaNotas(QWidget):
         # asi que la carga tambien valida. Sin modal: __init__ la invoca.
         if not self._tiene_acceso():
             self.tabla.setRowCount(0)
+            self.lbl_boletin.clear()
             self.lbl_error.setText("No tenés permisos para gestionar las notas.")
             return
 
@@ -271,7 +278,37 @@ class VistaNotas(QWidget):
             )
             self.tabla.setCellWidget(row_idx, 4, self._botones_accion(nota))
 
+        self._actualizar_boletin(dni)
+
         self.lbl_error.clear()
+
+    def _actualizar_boletin(self, dni):
+        """Resumen del alumno filtrado: materias y promedio general."""
+        if not dni:
+            self.lbl_boletin.clear()
+            return
+
+        try:
+            notas_dni = Nota.obtener_por_alumno(dni)
+            promedio = Nota.promedio_por_alumno(dni)
+        except RuntimeError:
+            self.lbl_boletin.clear()
+            return
+
+        texto_promedio = (
+            f"Promedio {promedio:.1f} sobre {len(notas_dni)} materias"
+            if promedio is not None
+            else "sin notas cargadas"
+        )
+
+        detalle = " · ".join(
+            f"{n.materia} {n.nota}" for n in notas_dni
+        )
+
+        self.lbl_boletin.setText(
+            f"Boletín de {dni}: {detalle} → {texto_promedio}" if detalle
+            else f"Boletín de {dni}: {texto_promedio}"
+        )
 
     def _botones_accion(self, nota):
         contenedor = QWidget()

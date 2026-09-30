@@ -15,10 +15,14 @@ from PySide6.QtCore import Qt
 
 from gui.componentes import alerta_error, alerta_exito
 from models.ausencia import Ausencia
+from models.alumno import Alumno
 from auth.permisos import tiene_permiso
 
 # Cargar y justificar ausencias es tarea de unpreceptor: Preceptor o superior.
 NIVEL_MINIMO = 3
+
+# Mas de este numero de faltas sin justificar enciende la alerta.
+LIMITE_INJUSTIFICADAS = 5
 
 
 class VistaAusencias(QWidget):
@@ -68,6 +72,29 @@ class VistaAusencias(QWidget):
         self.tabla.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tabla.setMinimumSize(800, 360)
         layout.addWidget(self.tabla)
+
+        # Conteos por alumno: alerta cuando pasan el limite de faltas
+        # sin justificar.
+        self.lbl_conteos = QLabel(
+            f"Conteos por alumno (alerta: más de "
+            f"{LIMITE_INJUSTIFICADAS} faltas sin justificar)"
+        )
+        self.lbl_conteos.setObjectName("ResumenTitulo")
+        self.lbl_conteos.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.lbl_conteos)
+
+        self.tabla_conteos = QTableWidget()
+        self.tabla_conteos.setColumnCount(5)
+        self.tabla_conteos.setHorizontalHeaderLabels(
+            ["DNI", "Alumno", "Justificadas", "Sin justificar", "Estado"]
+        )
+        self.tabla_conteos.horizontalHeader().setSectionResizeMode(
+            QHeaderView.Stretch
+        )
+        self.tabla_conteos.setSelectionBehavior(QTableWidget.SelectRows)
+        self.tabla_conteos.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.tabla_conteos.setMaximumHeight(280)
+        layout.addWidget(self.tabla_conteos)
 
         # Botones
         btn_layout = QHBoxLayout()
@@ -192,6 +219,7 @@ class VistaAusencias(QWidget):
         # asi que la carga tambien valida. Sin modal: __init__ la invoca.
         if not self._tiene_acceso():
             self.tabla.setRowCount(0)
+            self.tabla_conteos.setRowCount(0)
             self.lbl_error.setText("No tenés permisos para gestionar las ausencias.")
             return
 
@@ -225,7 +253,65 @@ class VistaAusencias(QWidget):
             )
             self.tabla.setCellWidget(row_idx, 3, self._botones_accion(ausencia))
 
+        self._cargar_conteos()
         self.lbl_error.clear()
+
+    def _cargar_conteos(self):
+        """Resumen por alumno: cuantas faltas justificadas y sin justificar
+        tiene cada uno, alertando sobre las que pasan el limite."""
+        self.tabla_conteos.setRowCount(0)
+
+        try:
+            ausencias = Ausencia.obtener_todas()
+        except (ValueError, RuntimeError, sqlite3.Error):
+            self.tabla_conteos.setRowCount(0)
+            return
+
+        conteo = {}
+
+        for ausencia in ausencias:
+            entrada = conteo.setdefault(
+                ausencia.dni, {"justificadas": 0, "injustificadas": 0}
+            )
+
+            if ausencia.justificada:
+                entrada["justificadas"] += 1
+            else:
+                entrada["injustificadas"] += 1
+
+        for row_idx, dni in enumerate(sorted(conteo)):
+            datos = conteo[dni]
+            en_alerta = datos["injustificadas"] > LIMITE_INJUSTIFICADAS
+
+            self.tabla_conteos.insertRow(row_idx)
+            self.tabla_conteos.setItem(
+                row_idx, 0, QTableWidgetItem(str(dni))
+            )
+            self.tabla_conteos.setItem(
+                row_idx, 1, QTableWidgetItem(self._alumno_nombre(dni))
+            )
+            self.tabla_conteos.setItem(
+                row_idx, 2, QTableWidgetItem(str(datos["justificadas"]))
+            )
+            self.tabla_conteos.setItem(
+                row_idx, 3, QTableWidgetItem(str(datos["injustificadas"]))
+            )
+
+            estado = QTableWidgetItem("Alerta" if en_alerta else "OK")
+            if en_alerta:
+                estado.setForeground(Qt.red)
+            self.tabla_conteos.setItem(row_idx, 4, estado)
+
+    def _alumno_nombre(self, dni):
+        try:
+            alumno = Alumno.obtener_por_dni(dni)
+        except (ValueError, RuntimeError, sqlite3.Error):
+            return "DNI desconocido"
+
+        if alumno is None:
+            return "DNI desconocido"
+
+        return f"{alumno.nombre} {alumno.apellido}"
 
     def _botones_accion(self, ausencia):
         contenedor = QWidget()
