@@ -2,7 +2,7 @@
 
 > Documento de traspaso. Al leerlo vas a saber: qué hace el sistema, qué se rompió y ya se arregló, qué falta, y qué archivos son tuyos.
 >
-> Fecha: 2026-09-29 · Rama del receptor: `feat/gui` · Rama del emisor: `feat/datos`
+> Fecha: 2026-09-29 · Rama del receptor: `feat/gui` · Ramas del emisor: `feat/datos` (mergeada) y `feat/seguridad` (en curso)
 
 ---
 
@@ -38,8 +38,8 @@ Niveles de permiso, definidos en `database/seed.py`:
 1. **Las cuentas de personal las crea un administrador.** No hay auto-registro público para profesores, preceptores ni admins.
 2. **El botón "Crear Cuenta" del inicio es solo para alumnos.** El registro público siempre entra con `autorizado = 0`.
 3. **Un alumno con `autorizado = 0` no puede loguearse.** `Alumno.login` lanza `PermisoDenegadoError` y registra el intento fallido en `accesos`.
-4. **Autorizar alumnos requiere nivel ≥ 3** (preceptor o superior). Está en `models/alumno.py:419` como `NIVEL_MINIMO_PARA_AUTORIZAR`.
-5. **Asignar cargos requiere nivel ≥ 10.** Está en `models/personal.py:182`.
+4. **Autorizar alumnos requiere nivel ≥ 3** (preceptor o superior). Está en `models/alumno.py` como `NIVEL_MINIMO_PARA_AUTORIZAR`.
+5. **Asignar cargos requiere nivel ≥ 10.** Está en `Personal.asignar_cargo()`.
 6. **El alta institucional de alumnos usa `autorizado = 1`.** Loader directo desde el menú.
 
 ---
@@ -66,7 +66,7 @@ def alerta_exito(parent, titulo, mensaje):    # QMessageBox.information
 
 Usalos. No los reimplementes.
 
-### 3.2 Capa de datos — commit `65018ff`, rama `feat/datos` (aún sin mergear)
+### 3.2 Capa de datos — commit `65018ff`, ya mergeado a `main`
 
 Cinco archivos. **Ninguno es tuyo.** No hay conflicto posible.
 
@@ -78,6 +78,27 @@ Cinco archivos. **Ninguno es tuyo.** No hay conflicto posible.
 | `models/alumno.py` | `except sqlite3.Error` agregado al `guardar()`. |
 | `models/personal.py` | `except sqlite3.Error` agregado al `guardar()`. |
 
+### 3.3 Hashing de contraseñas — commit `e15e18f`, rama `feat/seguridad`
+
+**Las contraseñas ya NO se guardan en texto plano.** PBKDF2-HMAC-SHA256, 260.000 iteraciones, sal aleatoria de 16 bytes por usuario.
+
+Nuevo archivo: **`auth/passwords.py`**
+```python
+hashear(contrasena)            # -> "pbkdf2_sha256$260000$<sal>$<hash>"
+verificar(contrasena, hash)    # comparacion de tiempo constante
+es_hash_contrasena(valor)
+validar_contrasena(contrasena) # exige 6 caracteres minimo
+```
+
+Nuevo archivo: **`database/migraciones.py`** — agrega la columna `password_hash` y hashea las contraseñas que ya estaban en plano. Es **idempotente**: correrla de nuevo no toca nada.
+
+**Lo que esto significa para vos — importante:**
+
+- `Alumno(...)` y `Personal(...)` **siguen recibiendo `password` en texto plano**. El modelo hashea solo. **No cambies nada** en cómo construís los objetos.
+- Los login ahora buscan por DNI y verifican el hash en Python. Antes comparaban en SQL.
+- La columna `password` queda vacía en la base. La `password_hash` es la que importa.
+- Si algún día querés resetear una contraseña, usá `hashear()`.
+
 ---
 
 ## 4. Dos hechos que cambian cómo escribís código
@@ -86,7 +107,7 @@ Cinco archivos. **Ninguno es tuyo.** No hay conflicto posible.
 
 `Curso.obtener_todos()` devuelve `1A1A`, `1B1B`, `2A2A`, `2B2B`, `3A3A`, `3B3B`. Podés probar el formulario real sin esperar el merge.
 
-El CHECK de `database/setup.py:38-42` exige 4 caracteres con patrón `[0-9][A-Z][0-9][A-Z]`. Nada más entra.
+El CHECK de `database/setup.py` en la tabla `curso` exige 4 caracteres con patrón `[0-9][A-Z][0-9][A-Z]`. Nada más entra.
 
 ### 4.2 Ya NO hace falta `conexion.commit()`
 
@@ -109,6 +130,7 @@ Tus archivos: `gui/`, `main.py`, `cli/`. Ninguno se solapa con `feat/datos`.
 | A5 | `gui/vistas/vista_ver_alumnos.py:88` | Llama a `_volver_al_menu()` pero `_menu_callback` nunca se setea: nadie invoca `set_menu_callback`. Cablealo desde `ventana_principal.py`. |
 | A6 | `gui/ventana_principal.py:180-193` | "Ver Profesores" y "Cargar / Ver Notas" apuntan ambos al índice 5, así que la 2ª sección nunca muestra nada distinto. Separalos en dos placeholders. |
 | A7 | `gui/ventana_login.py:41` | Placeholder dice "Nombre de usuario" pero el login busca por DNI. Corregí el texto. |
+| A8 | `cli/consola.py` | La opción "0) Cerrar sesión" mata el proceso en vez de volver al login. El menú dice una cosa y hace otra. |
 
 ### Bloque B — Formularios que ahora sí guardan
 
@@ -128,7 +150,7 @@ Mantené `autorizado=0` en el registro público (regla de negocio 2).
 
 > ⚠️ **Ojo con la altura.** El formulario de registro va de 4 filas a 8. La ventana tiene 900px fijos y **va a desbordar**. Necesitás `QScrollArea` o compactar espaciado. Es decisión de diseño tuya.
 >
-> 🔶 **Pendiente de decisión (ver §7):** el registro público no debería exigir dirección ni teléfono. Si se(relaja), eso toca `models/alumno.py`, o sea mi rama. Coordiná conmigo antes de tocar el modelo.
+> ✅ **Resuelto:** el registro público **sí** pide dirección y teléfono. Ambos son obligatorios y el modelo no se relaxes. Pedilos con los labels correctos.
 
 ### Bloque C — Sidebar por permisos
 
@@ -166,7 +188,7 @@ Los 5 formularios: `vista_cargar_alumnos`, `vista_registrar_personal`, `vista_au
 
 | Tema | Riesgo actual |
 | :--- | :--- |
-| **Hashing de contraseñas** | Contraseñas en **texto plano** en las 3 tablas. El login compara `password = ?` directo. Crackear la `.db` = leer todas. |
+| ~~Hashing de contraseñas~~ | **RESUELTO** en `feat/seguridad`. Ver §3.3. |
 | Refactor a ventana única | `main.py` mantiene un dict de ventanas top-level y las muestra con `.show()`. Contradice la spec §1.2, que dice explícitamente que ese patrón falló. |
 | Doble fila en `accesos` | `auth/autenticacion.py:19-25`: si `Personal.login` falla ya escribió un acceso fallido, y después `Alumno.login` escribe el exitoso. Cada login de alumno deja **2 filas**. |
 | `notas` / `ausencias` | Tablas creadas, sin modelo ni vista. |
@@ -177,11 +199,15 @@ Los 5 formularios: `vista_cargar_alumnos`, `vista_registrar_personal`, `vista_au
 
 ## 7. Decisiones que hay que tomar
 
-**Pendiente, bloqueante para B:** ¿el registro público exige dirección y teléfono? Mi recomendación es que **no**: se pide nombre, apellido, DNI, curso y contraseña; dirección y teléfono quedan opcionales hasta que el administrador autorice. Pero eso **relaja la validación en `models/alumno.py`, que es mi rama**. Decidilo antes de avanzar con B.
+**Nada pendiente.** Todo lo bloqueante ya está resuelto.
 
-**Ya decidido** (no la reviertas):
-- Los botones sin permiso se **ocultan**
+**Ya decidido — no lo reviertas:**
+- Los botones sin permiso se **ocultan** (no se deshabilitan)
 - Autorizar alumnos: **nivel ≥ 3** (preceptor o superior)
+- Registrar personal: **nivel ≥ 10**
+- El registro público **exige** dirección y teléfono. `models/alumno.py` **NO se relaja**; pedilos en el formulario.
+
+**Lo único que es decisión tuya (no bloquea):** cómo resolver el desborde del formulario de registro — `QScrollArea` o compactar espaciado.
 
 ---
 
@@ -191,7 +217,7 @@ Los 5 formularios: `vista_cargar_alumnos`, `vista_registrar_personal`, `vista_au
 git fetch origin
 git checkout main
 git pull
-git log --oneline -1        # debe mostrar 749f9b3 o posterior
+git log --oneline -1        # debe mostrar e15e18f o posterior
 git checkout -b feat/gui
 ```
 
@@ -202,7 +228,9 @@ git add gui/ main.py cli/
 git commit -m "feat: fix navigation, permission-aware sidebar, modal alerts"
 ```
 
-El emisor hace el merge. `feat/datos` y `feat/gui` no comparten archivos, así que **el merge es limpio por construcción**.
+El emisor hace el merge. `feat/datos`, `feat/seguridad` y `feat/gui` no comparten archivos, así que **el merge es limpio por construcción**.
+
+> Nota: `main.py` es tuyo para la navegación, pero ya tiene un commit mío (`e15e18f`) que agrega `migraciones()` al arranque. Si lo tocás, mantené esas dos líneas: la migración tiene que correr antes del seed.
 
 ---
 
@@ -218,6 +246,8 @@ Antes de dar por terminada tu rama:
 - [ ] El login dice "DNI", no "Nombre de usuario"
 - [ ] Guardar un alumno institucional persiste con `autorizado=1`
 - [ ] El registro público persiste con `autorizado=0` y **no** puede loguearse hasta ser autorizado
+- [ ] El registro público pide dirección y teléfono
+- [ ] Un usuario del seed puede loguearse con su contraseña original (`11111111` / `1234`)
 - [ ] Un preceptor (3) **no** ve "Registrar Personal"
 - [ ] Un alumno (0) no ve "Autorizar Alumnos" ni "Registrar Personal"
 - [ ] Campo obligatorio vacío → cartel, no crashea
