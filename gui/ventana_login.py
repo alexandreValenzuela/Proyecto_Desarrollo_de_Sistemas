@@ -3,11 +3,14 @@ Ventana de Login de NeoED.
 Formulario centrado: titulo NeoED, campos DNI + Contrasena, botones Ingresar + Volver.
 Dimensiones: 1600x900px, fondo #66B2FF.
 """
+import sqlite3
+
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 from PySide6.QtCore import Qt
 
 from gui.componentes import (HeaderTitleLabel, PrimaryButton,
-                              DestructiveButton, CustomLineEdit, ErrorLabel)
+                              DestructiveButton, CustomLineEdit, ErrorLabel,
+                              alerta_error)
 from models.personal import Personal
 from auth.autenticacion import login_unificado
 from auth.permisos import PermisoDenegadoError
@@ -38,7 +41,7 @@ class VentanaLogin(QWidget):
         layout.addSpacing(60)
 
         # Campo usuario (DNI)
-        self.entrada_dni = CustomLineEdit("Nombre de usuario", size=25)
+        self.entrada_dni = CustomLineEdit("DNI", size=25)
         self.entrada_dni.setFixedSize(500, 70)
         self.entrada_dni.setAlignment(Qt.AlignCenter)
 
@@ -89,31 +92,42 @@ class VentanaLogin(QWidget):
         password = self.entrada_password.text().strip()
 
         try:
-            usuario = login_unificado(dni, password)
-        except PermisoDenegadoError as e:
+            try:
+                usuario = login_unificado(dni, password)
+
+            except PermisoDenegadoError as e:
+                self.label_error.setText(str(e))
+                alerta_error(self, "Acceso denegado", str(e))
+                self.entrada_dni.setStyleSheet(
+                    self.entrada_dni.styleSheet() + "border: 2px solid #ff0000;"
+                )
+                return
+
+            except (ValueError, RuntimeError, sqlite3.Error) as e:
+                self.label_error.setText(str(e))
+                alerta_error(self, "Error al iniciar sesión", str(e))
+                return
+
+            if usuario is None:
+                self.label_error.setText("Usuario o contrasena incorrectos.")
+                self.entrada_dni.setStyleSheet(
+                    self.entrada_dni.styleSheet() + "border: 2px solid #ff0000;"
+                )
+                return
+
+            # Resetear estilos de error
+            self.entrada_dni.setStyleSheet("")
+            self.entrada_password.setStyleSheet("")
+            self.label_error.clear()
+
+            if self.al_loguear:
+                self.al_loguear(usuario)
+
+        except Exception as e:
+            # Red de seguridad: ningun error de login puede cerrar la app.
             self.label_error.setText(str(e))
-            self.entrada_dni.setStyleSheet(
-                self.entrada_dni.styleSheet() + "border: 2px solid #ff0000;"
-            )
+            alerta_error(self, "Error inesperado", str(e))
             return
-        except RuntimeError as e:
-            self.label_error.setText(str(e))
-            return
-
-        if usuario is None:
-            self.label_error.setText("Usuario o contrasena incorrectos.")
-            self.entrada_dni.setStyleSheet(
-                self.entrada_dni.styleSheet() + "border: 2px solid #ff0000;"
-            )
-            return
-
-        # Resetear estilos de error
-        self.entrada_dni.setStyleSheet("")
-        self.entrada_password.setStyleSheet("")
-        self.label_error.clear()
-
-        if self.al_loguear:
-            self.al_loguear(usuario)
 
     def _volver(self):
         if self.al_volver:
