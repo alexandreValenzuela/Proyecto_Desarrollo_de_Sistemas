@@ -1,10 +1,10 @@
-"""
+﻿"""
 Ventana de Registro publico de NeoED.
-Registro de alumnos — queda pendiente de autorizacion (autorizado=0).
+Registro de alumnos â€” queda pendiente de autorizacion (autorizado=0).
 Dimensiones: 1600x900px, fondo #66B2FF.
 
 El formulario va dentro de un QScrollArea: son 8 filas y la ventana tiene
-tamaño fijo, asi que sin scroll los ultimos campos quedan recortados.
+tamaÃ±o fijo, asi que sin scroll los ultimos campos quedan recortados.
 """
 import sqlite3
 
@@ -25,8 +25,8 @@ CAMPOS = [
     ("Apellido", "apellido"),
     ("DNI / Documento", "dni"),
     ("Fecha de Nacimiento (AAAA-MM-DD)", "fecha_nacimiento"),
-    ("Dirección", "direccion"),
-    ("Teléfono", "telefono"),
+    ("DirecciÃ³n", "direccion"),
+    ("TelÃ©fono", "telefono"),
 ]
 
 
@@ -39,7 +39,8 @@ class VentanaRegistro(QWidget):
         self.al_volver = al_volver
 
         self.setWindowTitle("NeoED - Registro de alumno")
-        self.setFixedSize(1600, 900)
+        self.resize(1600, 900)
+        self.setMinimumSize(1280, 800)
         self.setObjectName("CanvasBase")
 
         self._construir_interfaz()
@@ -71,7 +72,7 @@ class VentanaRegistro(QWidget):
         for texto, key in CAMPOS:
             form.addWidget(self._label(texto))
             entrada = CustomLineEdit(placeholder=texto, es_password=False, size=18)
-            entrada.setFixedSize(450, 44)
+            entrada.setMinimumSize(450, 44)
             self.entradas[key] = entrada
             form.addLayout(self._centrado(entrada))
 
@@ -80,7 +81,7 @@ class VentanaRegistro(QWidget):
 
         self.combo_curso = QComboBox()
         self.combo_curso.addItem("Seleccionar curso", None)
-        self.combo_curso.setFixedSize(450, 44)
+        self.combo_curso.setMinimumSize(450, 44)
         self.combo_curso.setStyleSheet("font-size: 18px;")
         self._poblar_combo_cursos()
         form.addLayout(self._centrado(self.combo_curso))
@@ -91,7 +92,7 @@ class VentanaRegistro(QWidget):
         self.entrada_password = CustomLineEdit(
             placeholder="Contrasena", es_password=True, size=18
         )
-        self.entrada_password.setFixedSize(450, 44)
+        self.entrada_password.setMinimumSize(450, 44)
         form.addLayout(self._centrado(self.entrada_password))
 
         scroll.setWidget(contenedor)
@@ -116,12 +117,12 @@ class VentanaRegistro(QWidget):
         btn_layout.setSpacing(30)
 
         btn_registrar = PrimaryButton("Registrarme", self._intentar_registro, 22)
-        btn_registrar.setFixedSize(210, 55)
+        btn_registrar.setMinimumSize(220, 55)
         btn_layout.addWidget(btn_registrar)
 
         if self.al_volver:
             btn_volver = DestructiveButton("Volver", self.al_volver, 22)
-            btn_volver.setFixedSize(210, 55)
+            btn_volver.setMinimumSize(220, 55)
             btn_layout.addWidget(btn_volver)
 
         layout.addLayout(btn_layout)
@@ -214,3 +215,4 @@ class VentanaRegistro(QWidget):
 
         if self.al_registrar:
             self.al_registrar()
+

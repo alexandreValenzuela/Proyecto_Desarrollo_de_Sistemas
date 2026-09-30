@@ -34,27 +34,27 @@ class VistaVerAlumnos(QWidget):
 
         self.txt_buscar = QLineEdit()
         self.txt_buscar.setPlaceholderText("Buscar por Nombre o DNI...")
-        self.txt_buscar.setFixedSize(500, 45)
+        self.txt_buscar.setMinimumSize(400, 45)
         self.txt_buscar.setStyleSheet("font-size: 18px;")
         self.txt_buscar.textChanged.connect(self.cargar_datos)
 
         self.cmb_cursos = QComboBox()
         self.cmb_cursos.addItem("Todos los Cursos", 0)
-        self.cmb_cursos.setFixedSize(200, 45)
+        self.cmb_cursos.setMinimumSize(200, 45)
         self.cmb_cursos.setStyleSheet("font-size: 18px;")
         self._poblar_combo_cursos()
         self.cmb_cursos.currentIndexChanged.connect(self.cargar_datos)
 
         btn_filtrar = QPushButton("Filtrar")
         btn_filtrar.setObjectName("FilterButton")
-        btn_filtrar.setFixedSize(140, 45)
+        btn_filtrar.setMinimumSize(140, 45)
         btn_filtrar.setStyleSheet("font-size: 20px;")
         btn_filtrar.setCursor(Qt.PointingHandCursor)
         btn_filtrar.clicked.connect(self.cargar_datos)
 
         btn_limpiar = QPushButton("Limpiar")
         btn_limpiar.setObjectName("DestructiveButton")
-        btn_limpiar.setFixedSize(120, 45)
+        btn_limpiar.setMinimumSize(140, 45)
         btn_limpiar.setStyleSheet("font-size: 18px;")
         btn_limpiar.setCursor(Qt.PointingHandCursor)
         btn_limpiar.clicked.connect(self._limpiar_filtros)
@@ -74,8 +74,8 @@ class VistaVerAlumnos(QWidget):
         self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tabla.setSelectionBehavior(QTableWidget.SelectRows)
         self.tabla.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.tabla.setFixedSize(1200, 520)
-        layout.addWidget(self.tabla, alignment=Qt.AlignCenter)
+        self.tabla.setMinimumSize(800, 400)
+        layout.addWidget(self.tabla)
 
         # Boton volver
         layout_volver = QHBoxLayout()

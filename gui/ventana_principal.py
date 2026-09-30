@@ -28,7 +28,7 @@ from gui.vistas.vista_autorizar_alumnos import VistaAutorizarAlumnos
 from gui.vistas.vista_registrar_personal import VistaRegistrarPersonal
 from gui.vistas.vista_notas import VistaNotas
 from gui.vistas.vista_ausencias import VistaAusencias
-from gui.vistas.vista_placeholder import VistaPlaceholder
+from gui.vistas.vista_profesores import VistaProfesores
 
 # Indices de stack_vistas.
 VISTA_BIENVENIDO = 0
@@ -64,7 +64,8 @@ class VentanaPrincipal(QMainWindow):
         self.on_logout_callback = on_logout_callback
 
         self.setWindowTitle("NeoED - Sistema de Gestion Escolar")
-        self.setFixedSize(1600, 900)
+        self.resize(1600, 900)
+        self.setMinimumSize(1280, 800)
         self.setObjectName("CanvasBase")
 
         # Botones del sidebar por indice de vista, para el resaltado.
@@ -99,26 +100,26 @@ class VentanaPrincipal(QMainWindow):
         self.btn_crear = PrimaryButton(
             "Crear Alumno", lambda: self._abrir_seccion(VISTA_CARGAR_ALUMNOS), 40
         )
-        self.btn_crear.setFixedSize(400, 85)
+        self.btn_crear.setMinimumSize(400, 80)
         layout.addLayout(self._centrar(self.btn_crear))
 
         self.btn_ver_menu = SecondaryButton(
             "Ver Alumnos", lambda: self._abrir_seccion(VISTA_VER_ALUMNOS), 40
         )
-        self.btn_ver_menu.setFixedSize(400, 85)
+        self.btn_ver_menu.setMinimumSize(400, 80)
         layout.addLayout(self._centrar(self.btn_ver_menu))
 
         self.btn_autorizar_menu = SecondaryButton(
             "Autorizar Alumnos", lambda: self._abrir_seccion(VISTA_AUTORIZAR), 40
         )
-        self.btn_autorizar_menu.setFixedSize(400, 85)
+        self.btn_autorizar_menu.setMinimumSize(400, 80)
         layout.addLayout(self._centrar(self.btn_autorizar_menu))
 
         self.btn_personal_menu = SecondaryButton(
             "Registrar Personal",
             lambda: self._abrir_seccion(VISTA_REGISTRAR_PERSONAL), 40
         )
-        self.btn_personal_menu.setFixedSize(400, 85)
+        self.btn_personal_menu.setMinimumSize(400, 80)
         layout.addLayout(self._centrar(self.btn_personal_menu))
 
         # Secciones restringidas: ocultas, nunca deshabilitadas.
@@ -172,9 +173,7 @@ class VentanaPrincipal(QMainWindow):
         self.vista_registrar_personal = VistaRegistrarPersonal(
             self.usuario, on_volver=al_menu
         )
-        self.vista_placeholder = VistaPlaceholder(
-            "Profesores — Modulo en mantenimiento"
-        )
+        self.vista_profesores = VistaProfesores(self.usuario, on_volver=al_menu)
         self.vista_notas = VistaNotas(self.usuario, on_volver=al_menu)
         self.vista_ausencias = VistaAusencias(self.usuario, on_volver=al_menu)
 
@@ -183,7 +182,7 @@ class VentanaPrincipal(QMainWindow):
         self.stack_vistas.addWidget(self.vista_cargar_alumnos)         # 2
         self.stack_vistas.addWidget(self.vista_autorizar)              # 3
         self.stack_vistas.addWidget(self.vista_registrar_personal)     # 4
-        self.stack_vistas.addWidget(self.vista_placeholder)            # 5
+        self.stack_vistas.addWidget(self.vista_profesores)             # 5
         self.stack_vistas.addWidget(self.vista_notas)                  # 6
         self.stack_vistas.addWidget(self.vista_ausencias)              # 7
 
@@ -333,6 +332,8 @@ class VentanaPrincipal(QMainWindow):
         """Refresca los datos de las vistas que los piden al entrar."""
         if index_vista == VISTA_VER_ALUMNOS:
             self.vista_ver_alumnos.cargar_datos()
+        elif index_vista == VISTA_PROFESORES:
+            self.vista_profesores.cargar_datos()
 
     def _refrescar_tabla_alumnos(self):
         self.vista_ver_alumnos.cargar_datos()

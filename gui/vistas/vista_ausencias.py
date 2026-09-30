@@ -66,8 +66,8 @@ class VistaAusencias(QWidget):
         self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tabla.setSelectionBehavior(QTableWidget.SelectRows)
         self.tabla.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.tabla.setFixedSize(1150, 420)
-        layout.addWidget(self.tabla, alignment=Qt.AlignCenter)
+        self.tabla.setMinimumSize(800, 360)
+        layout.addWidget(self.tabla)
 
         # Botones
         btn_layout = QHBoxLayout()
@@ -76,7 +76,7 @@ class VistaAusencias(QWidget):
 
         btn_volver = QPushButton("Volver")
         btn_volver.setObjectName("DestructiveButton")
-        btn_volver.setFixedSize(210, 60)
+        btn_volver.setMinimumSize(250, 60)
         btn_volver.setStyleSheet("font-size: 25px;")
         btn_volver.setCursor(Qt.PointingHandCursor)
         if self.on_volver:
@@ -96,13 +96,13 @@ class VistaAusencias(QWidget):
 
         self.entrada_filtro = QLineEdit()
         self.entrada_filtro.setPlaceholderText("DNI del alumno")
-        self.entrada_filtro.setFixedSize(220, 45)
+        self.entrada_filtro.setMinimumSize(220, 45)
         self.entrada_filtro.setStyleSheet("font-size: 18px;")
         fila.addWidget(self.entrada_filtro)
 
         btn_filtrar = QPushButton("Filtrar")
         btn_filtrar.setObjectName("FilterButton")
-        btn_filtrar.setFixedSize(140, 45)
+        btn_filtrar.setMinimumSize(140, 45)
         btn_filtrar.setStyleSheet("font-size: 18px;")
         btn_filtrar.setCursor(Qt.PointingHandCursor)
         btn_filtrar.clicked.connect(self.cargar_datos)
@@ -110,7 +110,7 @@ class VistaAusencias(QWidget):
 
         btn_refrescar = QPushButton("Refrescar")
         btn_refrescar.setObjectName("SecondaryButton")
-        btn_refrescar.setFixedSize(140, 45)
+        btn_refrescar.setMinimumSize(140, 45)
         btn_refrescar.setStyleSheet("font-size: 18px;")
         btn_refrescar.setCursor(Qt.PointingHandCursor)
         btn_refrescar.clicked.connect(self.cargar_datos)
@@ -127,14 +127,14 @@ class VistaAusencias(QWidget):
         fila.addWidget(self._label("DNI"))
         self.entrada_dni = QLineEdit()
         self.entrada_dni.setPlaceholderText("DNI")
-        self.entrada_dni.setFixedSize(180, 45)
+        self.entrada_dni.setMinimumSize(180, 45)
         self.entrada_dni.setStyleSheet("font-size: 18px;")
         fila.addWidget(self.entrada_dni)
 
         fila.addWidget(self._label("Fecha"))
         self.entrada_fecha = QLineEdit()
         self.entrada_fecha.setPlaceholderText("AAAA-MM-DD")
-        self.entrada_fecha.setFixedSize(180, 45)
+        self.entrada_fecha.setMinimumSize(180, 45)
         self.entrada_fecha.setStyleSheet("font-size: 18px;")
         fila.addWidget(self.entrada_fecha)
 
@@ -144,7 +144,7 @@ class VistaAusencias(QWidget):
 
         btn_guardar = QPushButton("Guardar ausencia")
         btn_guardar.setObjectName("PrimaryButton")
-        btn_guardar.setFixedSize(220, 45)
+        btn_guardar.setMinimumSize(220, 45)
         btn_guardar.setStyleSheet("font-size: 18px;")
         btn_guardar.setCursor(Qt.PointingHandCursor)
         btn_guardar.clicked.connect(self._guardar_ausencia)

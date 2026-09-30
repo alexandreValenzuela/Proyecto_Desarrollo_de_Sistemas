@@ -2,7 +2,9 @@
 
 > Documento de traspaso. Al leerlo vas a saber: qué hace el sistema, qué se rompió y ya se arregló, qué falta, y qué archivos son tuyos.
 >
-> Estado actual (2026-09-29): **`feat/gui` ya está mergeada en `main` (commit `8ba290e`) y verificada con smoke tests offscreen.** Los apartados que describen trabajo pendiente del receptor ya no aplican y se conservan como referencia de decisiones. Rama del emisor: `main`.
+> Estado actual (2026-09-29): **`feat/gui` ya está mergeada en `main` y verificada.** Rama del emisor: `main`.
+>
+> Evolución posterior al merge: módulo **"Ver Profesores"** funcional (`gui/vistas/vista_profesores.py`, reemplaza el placeholder; listado con búsqueda y reasignación de cargo para admin vía `Personal.obtener_todos_detalle()` / `Personal.asignar_cargo`); ventanas **redimensionables** (se eliminó `setFixedSize`, mínimo 1280x800) y tablas expansibles; botones con ancho por contenido para evitar texto recortado.
 
 ---
 
@@ -20,7 +22,7 @@ cli/consola.py       menú por terminal, replica las acciones de la GUI
 ```
 
 Base de datos: 7 tablas (`cargo`, `curso`, `alumnos`, `personal`, `notas`, `accesos`, `ausencias`).
-**Las 7 tienen modelo y todas tienen vista en la GUI mergeada** (`ver_alumnos`, `cargar_alumnos`, `autorizar`, `registrar_personal`, `profesores` placeholder, `notas`, `ausencias`).
+**Las 7 tienen modelo y todas tienen vista en la GUI mergeada** (`ver_alumnos`, `cargar_alumnos`, `autorizar`, `registrar_personal`, `profesores`, `notas`, `ausencias`).
 
 Niveles de permiso, definidos en `database/seed.py`:
 

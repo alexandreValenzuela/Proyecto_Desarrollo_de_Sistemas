@@ -57,7 +57,7 @@ class VistaAutorizarAlumnos(QWidget):
 
         btn_volver = QPushButton("Volver")
         btn_volver.setObjectName("DestructiveButton")
-        btn_volver.setFixedSize(210, 60)
+        btn_volver.setMinimumSize(250, 60)
         btn_volver.setStyleSheet("font-size: 25px;")
         btn_volver.setCursor(Qt.PointingHandCursor)
         if self.on_volver:

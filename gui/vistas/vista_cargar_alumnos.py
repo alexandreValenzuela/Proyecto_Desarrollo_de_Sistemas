@@ -1,4 +1,4 @@
-"""
+﻿"""
 Vista "Cargar Alumnos": formulario de alta institucional.
 Al guardar, crea el alumno con autorizado=1.
 Dimensiones y estilo segun Draw.io SSOT.
@@ -19,8 +19,8 @@ CAMPOS = [
     ("Nombre Completo", "nombre"),
     ("DNI / Documento", "dni"),
     ("Apellido", "apellido"),
-    ("Dirección", "direccion"),
-    ("Teléfono", "telefono"),
+    ("DirecciÃ³n", "direccion"),
+    ("TelÃ©fono", "telefono"),
     ("Fecha de Nacimiento (AAAA-MM-DD)", "fecha_nacimiento"),
 ]
 
@@ -60,7 +60,7 @@ class VistaCargarAlumnos(QWidget):
 
             entrada = QLineEdit()
             entrada.setPlaceholderText(texto)
-            entrada.setFixedSize(450, 50)
+            entrada.setMinimumSize(450, 50)
             entrada.setStyleSheet("font-size: 20px;")
             self.entradas[key] = entrada
             contenedor = QHBoxLayout()
@@ -78,7 +78,7 @@ class VistaCargarAlumnos(QWidget):
 
         self.combo_curso = QComboBox()
         self.combo_curso.addItem("Seleccionar curso", None)
-        self.combo_curso.setFixedSize(450, 50)
+        self.combo_curso.setMinimumSize(450, 50)
         self.combo_curso.setStyleSheet("font-size: 20px;")
         self._poblar_combo_cursos()
         contenedor_curso = QHBoxLayout()
@@ -97,7 +97,7 @@ class VistaCargarAlumnos(QWidget):
         self.entrada_password = QLineEdit()
         self.entrada_password.setPlaceholderText("Contrasena")
         self.entrada_password.setEchoMode(QLineEdit.Password)
-        self.entrada_password.setFixedSize(450, 50)
+        self.entrada_password.setMinimumSize(450, 50)
         self.entrada_password.setStyleSheet("font-size: 20px;")
         contenedor_pass = QHBoxLayout()
         contenedor_pass.setAlignment(Qt.AlignCenter)
@@ -119,7 +119,7 @@ class VistaCargarAlumnos(QWidget):
 
         btn_guardar = QPushButton("Guardar Alumno")
         btn_guardar.setObjectName("PrimaryButton")
-        btn_guardar.setFixedSize(210, 60)
+        btn_guardar.setMinimumSize(250, 60)
         btn_guardar.setStyleSheet("font-size: 25px;")
         btn_guardar.setCursor(Qt.PointingHandCursor)
         btn_guardar.clicked.connect(self._guardar_alumno)
@@ -127,7 +127,7 @@ class VistaCargarAlumnos(QWidget):
 
         btn_volver = QPushButton("Volver")
         btn_volver.setObjectName("DestructiveButton")
-        btn_volver.setFixedSize(210, 60)
+        btn_volver.setMinimumSize(250, 60)
         btn_volver.setStyleSheet("font-size: 25px;")
         btn_volver.setCursor(Qt.PointingHandCursor)
         if self.on_volver:
@@ -208,3 +208,4 @@ class VistaCargarAlumnos(QWidget):
         self.entrada_password.clear()
         self.combo_curso.setCurrentIndex(0)
         self.lbl_error.clear()
+

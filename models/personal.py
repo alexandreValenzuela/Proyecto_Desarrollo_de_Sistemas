@@ -307,6 +307,42 @@ class Personal:
 
             raise RuntimeError(f"Error al obtener personal: {e}")
 
+    @classmethod
+    def obtener_todos_detalle(cls):
+        """El personal con el nombre y el nivel de su cargo (JOIN).
+
+        Devuelve filas (dni, nombre, apellido, cargo, nivel_permisos)
+        ordenadas por apellido. Lo usa la vista "Ver Profesores".
+        """
+
+        try:
+
+            with obtener_conexion() as conexion:
+
+                cursor = conexion.cursor()
+
+                cursor.execute(
+                    """
+                    SELECT
+                        personal.dni,
+                        personal.nombre,
+                        personal.apellido,
+                        cargo.cargo,
+                        cargo.nivel_permisos
+
+                    FROM personal
+                    INNER JOIN cargo ON personal.cargo_id = cargo.cargo_id
+
+                    ORDER BY personal.apellido, personal.nombre
+                    """
+                )
+
+                return cursor.fetchall()
+
+        except sqlite3.Error as e:
+
+            raise RuntimeError(f"Error al obtener personal: {e}")
+
     # -------------------------------------------------------------------------
     # UPDATE
     # -------------------------------------------------------------------------

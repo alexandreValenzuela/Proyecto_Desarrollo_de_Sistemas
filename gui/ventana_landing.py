@@ -18,7 +18,8 @@ class VentanaLanding(QWidget):
         self.al_crear_cuenta = al_crear_cuenta
 
         self.setWindowTitle("NeoED - Bienvenida")
-        self.setFixedSize(1600, 900)
+        self.resize(1600, 900)
+        self.setMinimumSize(1280, 800)
         self.setObjectName("CanvasBase")
 
         self._construir_interfaz()
@@ -40,11 +41,11 @@ class VentanaLanding(QWidget):
         layout_btn.setSpacing(38)
 
         btn_ingresar = PrimaryButton("Iniciar Sesion", self.al_iniciar_sesion, 40)
-        btn_ingresar.setFixedSize(400, 85)
+        btn_ingresar.setMinimumSize(400, 80)
         layout_btn.addWidget(btn_ingresar)
 
         btn_crear = SecondaryButton("Crear Cuenta", self.al_crear_cuenta, 40)
-        btn_crear.setFixedSize(400, 85)
+        btn_crear.setMinimumSize(400, 80)
         layout_btn.addWidget(btn_crear)
 
         layout.addLayout(layout_btn)

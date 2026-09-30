@@ -1,4 +1,4 @@
-"""
+﻿"""
 Ventana de Login de NeoED.
 Formulario centrado: titulo NeoED, campos DNI + Contrasena, botones Ingresar + Volver.
 Dimensiones: 1600x900px, fondo #66B2FF.
@@ -25,7 +25,8 @@ class VentanaLogin(QWidget):
         self.al_volver = al_volver
 
         self.setWindowTitle("NeoED - Inicio de sesion")
-        self.setFixedSize(1600, 900)
+        self.resize(1600, 900)
+        self.setMinimumSize(1280, 800)
         self.setObjectName("CanvasBase")
 
         self._construir_interfaz()
@@ -42,7 +43,7 @@ class VentanaLogin(QWidget):
 
         # Campo usuario (DNI)
         self.entrada_dni = CustomLineEdit("DNI", size=25)
-        self.entrada_dni.setFixedSize(500, 70)
+        self.entrada_dni.setMinimumSize(500, 70)
         self.entrada_dni.setAlignment(Qt.AlignCenter)
 
         contenedor_dni = QHBoxLayout()
@@ -52,7 +53,7 @@ class VentanaLogin(QWidget):
 
         # Campo contrasena
         self.entrada_password = CustomLineEdit("Contrasena", es_password=True, size=25)
-        self.entrada_password.setFixedSize(500, 70)
+        self.entrada_password.setMinimumSize(500, 70)
         self.entrada_password.setAlignment(Qt.AlignCenter)
 
         contenedor_pass = QHBoxLayout()
@@ -76,11 +77,11 @@ class VentanaLogin(QWidget):
         layout_btn.setSpacing(60)
 
         btn_ingresar = PrimaryButton("Ingresar", self._intentar_login, 35)
-        btn_ingresar.setFixedSize(220, 70)
+        btn_ingresar.setMinimumSize(220, 70)
         layout_btn.addWidget(btn_ingresar)
 
         btn_volver = DestructiveButton("Volver", self._volver, 35)
-        btn_volver.setFixedSize(220, 70)
+        btn_volver.setMinimumSize(220, 70)
         layout_btn.addWidget(btn_volver)
 
         layout.addLayout(layout_btn)
@@ -105,7 +106,7 @@ class VentanaLogin(QWidget):
 
             except (ValueError, RuntimeError, sqlite3.Error) as e:
                 self.label_error.setText(str(e))
-                alerta_error(self, "Error al iniciar sesión", str(e))
+                alerta_error(self, "Error al iniciar sesiÃ³n", str(e))
                 return
 
             if usuario is None:
@@ -132,3 +133,4 @@ class VentanaLogin(QWidget):
     def _volver(self):
         if self.al_volver:
             self.al_volver()
+
