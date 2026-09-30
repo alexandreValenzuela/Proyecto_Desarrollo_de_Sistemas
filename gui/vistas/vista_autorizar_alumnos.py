@@ -2,20 +2,27 @@
 Vista de Autorizacion de Alumnos.
 Lista alumnos pendientes (autorizado=0) y permite aprobarlos.
 """
+import sqlite3
+
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                 QTableWidget, QTableWidgetItem, QHeaderView,
-                                QPushButton, QMessageBox)
+                                QPushButton)
 from PySide6.QtCore import Qt
 
+from gui.componentes import alerta_error, alerta_exito
 from models.alumno import Alumno
-from auth.permisos import PermisoDenegadoError
+from auth.permisos import PermisoDenegadoError, tiene_permiso
+
+# Mismo nivel que Alumno.NIVEL_MINIMO_PARA_AUTORIZAR (Preceptor o superior).
+NIVEL_MINIMO = 3
 
 
 class VistaAutorizarAlumnos(QWidget):
 
-    def __init__(self, usuario):
+    def __init__(self, usuario, on_volver=None):
         super().__init__()
         self.usuario = usuario
+        self.on_volver = on_volver
         self._construir_interfaz()
 
     def _construir_interfaz(self):
@@ -43,6 +50,22 @@ class VistaAutorizarAlumnos(QWidget):
         self.tabla.setEditTriggers(QTableWidget.NoEditTriggers)
         layout.addWidget(self.tabla)
 
+        # Botones
+        btn_layout = QHBoxLayout()
+        btn_layout.setAlignment(Qt.AlignCenter)
+        btn_layout.setSpacing(30)
+
+        btn_volver = QPushButton("Volver")
+        btn_volver.setObjectName("DestructiveButton")
+        btn_volver.setFixedSize(210, 60)
+        btn_volver.setStyleSheet("font-size: 25px;")
+        btn_volver.setCursor(Qt.PointingHandCursor)
+        if self.on_volver:
+            btn_volver.clicked.connect(self.on_volver)
+        btn_layout.addWidget(btn_volver)
+
+        layout.addLayout(btn_layout)
+
         self._cargar_pendientes()
 
     def _cargar_pendientes(self):
@@ -50,6 +73,7 @@ class VistaAutorizarAlumnos(QWidget):
             pendientes = Alumno.obtener_pendientes()
         except Exception as e:
             self.lbl_error.setText(str(e))
+            alerta_error(self, "Error al cargar pendientes", str(e))
             return
 
         self.tabla.setRowCount(0)
@@ -73,12 +97,31 @@ class VistaAutorizarAlumnos(QWidget):
             self.tabla.setCellWidget(row_idx, 3, btn)
 
     def _autorizar(self, dni):
-        try:
-            Alumno.autorizar(self.usuario, dni)
-        except (PermisoDenegadoError, RuntimeError) as e:
-            self.lbl_error.setText(str(e))
+        # Defensa en profundidad: la vista se oculta para quien no llega a
+        # NIVEL_MINIMO, pero el handler vuelve a validar antes de escribir.
+        if not tiene_permiso(self.usuario, NIVEL_MINIMO):
+            self.lbl_error.setText("No tenés permisos para autorizar alumnos.")
+            alerta_error(
+                self, "Permiso denegado",
+                "No tenés permisos para autorizar alumnos."
+            )
             return
 
-        QMessageBox.information(self, "Exito", f"Alumno DNI {dni} autorizado.")
+        try:
+            Alumno.autorizar(self.usuario, dni)
+
+        except (PermisoDenegadoError, ValueError, RuntimeError,
+                sqlite3.Error) as e:
+            self.lbl_error.setText(str(e))
+            alerta_error(self, "Error al autorizar", str(e))
+            return
+
+        except Exception as e:
+            # Red de seguridad: ningun error puede cerrar la app.
+            self.lbl_error.setText(str(e))
+            alerta_error(self, "Error inesperado", str(e))
+            return
+
+        alerta_exito(self, "Exito", f"Alumno DNI {dni} autorizado.")
         self.lbl_error.clear()
         self._cargar_pendientes()

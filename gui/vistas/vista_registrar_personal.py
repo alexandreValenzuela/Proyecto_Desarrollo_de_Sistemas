@@ -2,20 +2,27 @@
 Vista de Registro de Personal.
 Alta de administradores/profesores/preceptores (nivel_permisos >= 10).
 """
+import sqlite3
+
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                                QLineEdit, QComboBox, QPushButton, QMessageBox)
+                                QLineEdit, QComboBox, QPushButton)
 from PySide6.QtCore import Qt
 
+from gui.componentes import alerta_error, alerta_exito
 from models.personal import Personal
 from models.cargo import Cargo
-from auth.permisos import PermisoDenegadoError
+from auth.permisos import PermisoDenegadoError, tiene_permiso
+
+# Nivel minimo para dar de alta personal (crea administradores).
+NIVEL_MINIMO = 10
 
 
 class VistaRegistrarPersonal(QWidget):
 
-    def __init__(self, usuario):
+    def __init__(self, usuario, on_volver=None):
         super().__init__()
         self.usuario = usuario
+        self.on_volver = on_volver
         self._construir_interfaz()
 
     def _construir_interfaz(self):
@@ -137,6 +144,8 @@ class VistaRegistrarPersonal(QWidget):
         btn_volver.setFixedSize(210, 60)
         btn_volver.setStyleSheet("font-size: 25px;")
         btn_volver.setCursor(Qt.PointingHandCursor)
+        if self.on_volver:
+            btn_volver.clicked.connect(self.on_volver)
         btn_layout.addWidget(btn_volver)
 
         layout.addLayout(btn_layout)
@@ -155,6 +164,16 @@ class VistaRegistrarPersonal(QWidget):
     def _intentar_registro(self):
         cargo_id = self.combo_cargo.currentData()
 
+        # Defensa en profundidad: la vista se oculta para quien no llega a
+        # NIVEL_MINIMO, pero el handler vuelve a validar antes de escribir.
+        if not tiene_permiso(self.usuario, NIVEL_MINIMO):
+            self.lbl_error.setText("No tenés permisos para registrar personal.")
+            alerta_error(
+                self, "Permiso denegado",
+                "No tenés permisos para registrar personal."
+            )
+            return
+
         try:
             nuevo = Personal(
                 dni=self.entrada_dni.text().strip(),
@@ -167,11 +186,18 @@ class VistaRegistrarPersonal(QWidget):
             )
             nuevo.guardar()
 
-        except (ValueError, RuntimeError) as e:
+        except (ValueError, RuntimeError, sqlite3.Error) as e:
             self.lbl_error.setText(str(e))
+            alerta_error(self, "Error al registrar", str(e))
             return
 
-        QMessageBox.information(self, "Exito", "Personal registrado correctamente.")
+        except Exception as e:
+            # Red de seguridad: ningun error de alta puede cerrar la app.
+            self.lbl_error.setText(str(e))
+            alerta_error(self, "Error inesperado", str(e))
+            return
+
+        alerta_exito(self, "Exito", "Personal registrado correctamente.")
         self.lbl_error.clear()
         self._limpiar_formulario()
 

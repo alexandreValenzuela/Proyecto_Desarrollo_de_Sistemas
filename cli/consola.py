@@ -119,11 +119,36 @@ def _ejecutar_opcion(usuario, opcion):
         print(f"Error: {e}")
 
 
+def _leer_entrada(prompt):
+    """Lee una linea de stdin. Devuelve None si el input se agota (EOF, por
+    ejemplo un pipe o un < archivo) o si el usuario corta con Ctrl+C, para
+    que la consola termine limpia en vez de tirar traceback."""
+    try:
+        return input(prompt)
+
+    except (EOFError, KeyboardInterrupt):
+        return None
+
+
 def iniciar_sesion_consola():
     print("=== INICIO DE SESION ===")
 
-    dni = input("DNI: ")
-    password = input("Contraseña: ")
+    dni = _leer_entrada("DNI (o 'salir' para terminar): ")
+
+    # Sin input disponible es igual que 'salir': no hay con quien autenticarse.
+    if dni is None:
+        return "salir"
+
+    dni = dni.strip()
+
+    # Sentinel: corta el ciclo de sesiones sin pedir contrasena.
+    if dni.lower() == "salir":
+        return "salir"
+
+    password = _leer_entrada("Contraseña: ")
+
+    if password is None:
+        return "salir"
 
     try:
         usuario = login_unificado(dni, password)
@@ -140,22 +165,37 @@ def iniciar_sesion_consola():
 
 
 def ejecutar_menu_consola():
-    usuario = iniciar_sesion_consola()
-
-    if not usuario:
-        return
-
-    print(f"\nBienvenido, {usuario['nombre']}.")
-
     while True:
-        _mostrar_menu(usuario)
-        opcion = input("Elegí una opción: ")
+        usuario = iniciar_sesion_consola()
 
-        if opcion == "0":
-            print("Sesión cerrada.")
-            break
+        if usuario == "salir":
+            print("Hasta luego.")
+            return
 
-        _ejecutar_opcion(usuario, opcion)
+        if not usuario:
+            continue  # credenciales inválidas: volver a preguntar
+
+        print(f"\nBienvenido, {usuario['nombre']}.")
+
+        while True:
+            _mostrar_menu(usuario)
+            opcion = _leer_entrada("Elegí una opción: ")
+
+            # Input agotado en el menu: termina el proceso, no reinicia login.
+            if opcion is None:
+                print("Hasta luego.")
+                return
+
+            if opcion == "0":
+                print("Sesión cerrada.")
+                break  # vuelve al login, no termina el proceso
+
+            _ejecutar_opcion(usuario, opcion)
 
 if __name__ == "__main__":
-    ejecutar_menu_consola()
+    try:
+        ejecutar_menu_consola()
+
+    except KeyboardInterrupt:
+        # Ctrl+C en cualquier punto: salida limpia, codigo 0.
+        print("\nHasta luego.")

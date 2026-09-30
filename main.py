@@ -21,6 +21,7 @@ def ejecutar_por_interfaz():
     from gui.estilos import ESTILO_GLOBAL
     from gui.ventana_landing import VentanaLanding
     from gui.ventana_login import VentanaLogin
+    from gui.ventana_registro import VentanaRegistro
     from gui.ventana_principal import VentanaPrincipal
 
     app = QApplication(sys.argv)
@@ -38,13 +39,21 @@ def ejecutar_por_interfaz():
         )
         ventanas["login"].show()
 
+    def ir_a_registro():
+        ventanas["landing"].close()
+        ventanas["registro"] = VentanaRegistro(
+            al_registrar=ir_a_login,
+            al_volver=ir_a_landing
+        )
+        ventanas["registro"].show()
+
     def ir_a_landing():
         for key in list(ventanas.keys()):
             ventanas[key].close()
             del ventanas[key]
         ventanas["landing"] = VentanaLanding(
             al_iniciar_sesion=ir_a_login,
-            al_crear_cuenta=ir_a_login
+            al_crear_cuenta=ir_a_registro
         )
         ventanas["landing"].show()
 
@@ -58,7 +67,7 @@ def ejecutar_por_interfaz():
     # --- Pantalla inicial: Landing ---
     ventanas["landing"] = VentanaLanding(
         al_iniciar_sesion=ir_a_login,
-        al_crear_cuenta=ir_a_login
+        al_crear_cuenta=ir_a_registro
     )
     ventanas["landing"].show()
 

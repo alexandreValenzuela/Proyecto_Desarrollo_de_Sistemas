@@ -3,19 +3,34 @@ Vista "Cargar Alumnos": formulario de alta institucional.
 Al guardar, crea el alumno con autorizado=1.
 Dimensiones y estilo segun Draw.io SSOT.
 """
+import sqlite3
+
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                                QLineEdit, QComboBox, QPushButton, QMessageBox)
+                                QLineEdit, QComboBox, QPushButton)
 from PySide6.QtCore import Qt
 
+from gui.componentes import alerta_error, alerta_exito
 from models.alumno import Alumno
 from models.curso import Curso
+
+# Campos obligatorios del alta institucional, en orden de captura.
+# El key es el que se usa para leer el valor desde self.entradas.
+CAMPOS = [
+    ("Nombre Completo", "nombre"),
+    ("DNI / Documento", "dni"),
+    ("Apellido", "apellido"),
+    ("Dirección", "direccion"),
+    ("Teléfono", "telefono"),
+    ("Fecha de Nacimiento (AAAA-MM-DD)", "fecha_nacimiento"),
+]
 
 
 class VistaCargarAlumnos(QWidget):
 
-    def __init__(self, on_guardado=None):
+    def __init__(self, on_guardado=None, on_volver=None):
         super().__init__()
         self.on_guardado = on_guardado
+        self.on_volver = on_volver
         self._construir_interfaz()
 
     def _construir_interfaz(self):
@@ -34,13 +49,8 @@ class VistaCargarAlumnos(QWidget):
         form.setAlignment(Qt.AlignCenter)
         form.setSpacing(20)
 
-        campos = [
-            ("Nombre Completo", "nombre"),
-            ("DNI / Documento", "dni"),
-        ]
-
         self.entradas = {}
-        for texto, key in campos:
+        for texto, key in CAMPOS:
             lbl_campo = QLabel(texto)
             lbl_campo.setStyleSheet("""
                 font-family: 'Cascadia Code', 'Consolas', monospace;
@@ -120,6 +130,8 @@ class VistaCargarAlumnos(QWidget):
         btn_volver.setFixedSize(210, 60)
         btn_volver.setStyleSheet("font-size: 25px;")
         btn_volver.setCursor(Qt.PointingHandCursor)
+        if self.on_volver:
+            btn_volver.clicked.connect(self.on_volver)
         btn_layout.addWidget(btn_volver)
 
         layout.addLayout(btn_layout)
@@ -132,38 +144,63 @@ class VistaCargarAlumnos(QWidget):
         except Exception:
             pass
 
+    def _leer_campos(self):
+        valores = {key: self.entradas[key].text().strip() for key in self.entradas}
+        valores["password"] = self.entrada_password.text().strip()
+        valores["curso_id"] = self.combo_curso.currentData()
+        return valores
+
     def _guardar_alumno(self):
-        dni = self.entradas["dni"].text().strip()
-        nombre = self.entradas["nombre"].text().strip()
-        curso_id = self.combo_curso.currentData()
-        password = self.entrada_password.text().strip()
-
-        if not all([dni, nombre, curso_id, password]):
-            self.lbl_error.setText("Todos los campos son obligatorios.")
-            return
-
         try:
+            datos = self._leer_campos()
+
+            if not all([
+                datos["nombre"],
+                datos["dni"],
+                datos["apellido"],
+                datos["direccion"],
+                datos["telefono"],
+                datos["fecha_nacimiento"],
+                datos["password"],
+                datos["curso_id"],
+            ]):
+                self.lbl_error.setText("Todos los campos son obligatorios.")
+                alerta_error(
+                    self, "Error al guardar",
+                    "Todos los campos son obligatorios."
+                )
+                return
+
+            # Regla de negocio: el alta institucional ya nasce autorizada.
             nuevo = Alumno(
-                dni=dni,
-                nombre=nombre,
-                apellido="",
-                direccion="",
-                fecha_nacimiento="2000-01-01",
-                telefono="0000000000",
-                password=password,
-                curso_id=curso_id,
+                dni=datos["dni"],
+                nombre=datos["nombre"],
+                apellido=datos["apellido"],
+                direccion=datos["direccion"],
+                fecha_nacimiento=datos["fecha_nacimiento"],
+                telefono=datos["telefono"],
+                password=datos["password"],
+                curso_id=datos["curso_id"],
                 autorizado=1
             )
             nuevo.guardar()
 
-            QMessageBox.information(self, "Exito", "Alumno registrado exitosamente.")
-            self._limpiar_formulario()
-
-            if self.on_guardado:
-                self.on_guardado()
-
-        except (ValueError, RuntimeError) as e:
+        except (ValueError, RuntimeError, sqlite3.Error) as e:
             self.lbl_error.setText(str(e))
+            alerta_error(self, "Error al guardar", str(e))
+            return
+
+        except Exception as e:
+            # Red de seguridad: ningun error de alta puede cerrar la app.
+            self.lbl_error.setText(str(e))
+            alerta_error(self, "Error inesperado", str(e))
+            return
+
+        alerta_exito(self, "Exito", "Alumno registrado exitosamente.")
+        self._limpiar_formulario()
+
+        if self.on_guardado:
+            self.on_guardado()
 
     def _limpiar_formulario(self):
         for entrada in self.entradas.values():
