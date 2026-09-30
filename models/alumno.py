@@ -331,9 +331,20 @@ class Alumno:
     # -------------------------------------------------------------------------
 
     @classmethod
-    def login(cls, dni, password):
+    def login(cls, dni, password, registrar_acceso=True):
 
+        """
+        Autentica a un alumno.
+
+        registrar_acceso=False evita que este intento quede registrado en
+        la tabla accesos. Lo usa auth/autenticacion.py para probar contra
+        ambas tablas y registrar un unico intento por login.
+        """
         from models.acceso import Acceso
+
+        def registrar(exitoso):
+            if registrar_acceso:
+                Acceso.registrar(dni, exitoso=exitoso)
 
         try:
             with obtener_conexion() as conexion:
@@ -353,23 +364,23 @@ class Alumno:
                 fila = cursor.fetchone()
 
                 if not fila:
-                    Acceso.registrar(dni, exitoso=False)
+                    registrar(False)
                     return None
 
                 dni_encontrado, nombre, apellido, autorizado, hash_almacenado = fila
 
                 if not verificar(password, hash_almacenado):
-                    Acceso.registrar(dni, exitoso=False)
+                    registrar(False)
                     return None
 
                 if not autorizado:
-                    Acceso.registrar(dni, exitoso=False)
+                    registrar(False)
                     raise PermisoDenegadoError(
                         "Tu registro todavía no fue autorizado por un "
                         "profesor o preceptor."
                     )
 
-                Acceso.registrar(dni, exitoso=True)
+                registrar(True)
 
                 return {
                     "dni": dni_encontrado,

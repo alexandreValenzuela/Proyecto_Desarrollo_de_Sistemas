@@ -77,9 +77,20 @@ class Personal:
     # -------------------------------------------------------------------------
 
     @classmethod
-    def login(cls, dni, password):
+    def login(cls, dni, password, registrar_acceso=True):
 
+        """
+        Autentica a un miembro del personal.
+
+        registrar_acceso=False evita que este intento quede registrado en
+        la tabla accesos. Lo usa auth/autenticacion.py para probar contra
+        ambas tablas y registrar un unico intento por login.
+        """
         from models.acceso import Acceso
+
+        def registrar(exitoso):
+            if registrar_acceso:
+                Acceso.registrar(dni, exitoso=exitoso)
 
         try:
             with obtener_conexion() as conexion:
@@ -105,7 +116,7 @@ class Personal:
                 usuario = cursor.fetchone()
 
                 if usuario and verificar(password, usuario[5]):
-                    Acceso.registrar(dni, exitoso=True)
+                    registrar(True)
 
                     return {
                         "dni": usuario[0],
@@ -115,7 +126,7 @@ class Personal:
                         "nivel_permisos": usuario[4]
                     }
 
-                Acceso.registrar(dni, exitoso=False)
+                registrar(False)
                 return None
 
         except sqlite3.Error as e:
