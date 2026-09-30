@@ -161,11 +161,59 @@ Las opciones de notas solo se muestran para nivel ≥ 5 y las de ausencias para 
 
 **Datos demo**: `database/seed_alumnos_demo.py` carga, de forma idempotente (no pisa lo existente):
 
-- 5 alumnos (DNI 45000001–45000005, contraseña `demo123`, `autorizado=1`, curso real).
-- 3 notas por alumno: Matemática, Lengua e Inglés (15 en total).
-- Ausencias solo para 3 de los 5 (45000001, 45000002, 45000003; 7 registros, algunas justificadas).
+- 5 alumnos (DNI 45000001–45000005, contraseña `demo123`, curso real).
+- 4 autorizados + **1 pendiente de autorizar** (45000005 Camila Martinez) para probar el flujo de autorización y el contador del dashboard.
+- 16 notas: cada alumno con valores distintos, así los promedios difieren (8.00 / 5.00 / 9.00 / 6.75 / 7.67). Lautaro (45000004) además tiene "Historia", la única materia que ve un solo alumno: el filtro por materia muestra el caso de un solo resultado.
+- 16 ausencias repartidas: 45000001 tiene 6 sin justificar (dispara la alerta, límite 5), 45000004 no tiene ninguna (caso "sin faltas") y el resto queda en estado OK.
+- 2 accesos por alumno (1 exitoso + 1 fallido) para que la vista "Historial de Accesos" tenga qué mostrar.
 
-Correr: `python database/seed_alumnos_demo.py`. No se ejecuta al arrancar la app.
+Correr: `python database/seed_alumnos_demo.py`. No se ejecuta al arrancar la app. Es
+idempotente por alumno: re-correrlo con alumnos ya cargados no duplica nada.
+
+### 3.7 Resumen por rol, boletín, historial, alertas y contraseñas
+
+Agregado en esta ronda (sin commit todavía). Todo verificado con smoke test
+(`tests/` + script headless) y `pytest` en verde.
+
+| Vista | Columna | Nivel mínimo | Qué muestra |
+| :--- | :--- | :---: | :--- |
+| `gui/vistas/vista_bienvenido.py` | "Resumen" | 1 (todos) | alumno: promedio general y ausencias (totales / justificadas / sin justificar). Staff: alumnos cargados, pendientes de autorizar, notas cargadas y ausencias registradas |
+| `gui/vistas/vista_notas.py` | "Cargar / Ver Notas" | 5 | se le agregó **Boletín**: promedio por materia y general del alumno filtrado |
+| `gui/vistas/vista_mis_notas.py` | "Mis Notas" | 1 | **Promedio general** del alumno arriba de su tabla |
+| `gui/vistas/vista_accesos.py` | "Historial de Accesos" | 5 | `Acceso.historial()` con filtro por DNI, fecha, hora y resultado |
+| `gui/vistas/vista_ausencias.py` | "Cargar / Ver Ausencias" | 3 | **tabla de conteos por alumno** + columna "Estado": `Alerta` si tiene más de 5 injustificadas, `OK` si no |
+| `gui/vistas/vista_cambiar_password.py` | "Cambiar Contraseña" | 1 | cambio propio (exige la actual) y, en nivel 10, reset de la contraseña de otro usuario |
+
+Métodos nuevos: `Nota.promedio_por_alumno(dni)`, `Acceso.historial()`,
+`Alumno.cambiar_password(dni, actual, nueva)` y `resetear_password(dni, nueva)`,
+`Personal.cambiar_password` / `resetear_password`. Reutilizan
+`Ausencia.contar_por_alumno(dni, solo_justificadas)` y
+`Acceso.historial_por_dni(dni)`, que ya existían. El cambio de contraseña es
+**self-service obligatorio**: al entrar aparece un aviso de contraseña temporal
+que deriva a esta vista.
+
+`gui/estilos.py` suma `ResumenTitulo` y `ResumenLinea` para el dashboard, en vez
+de repetir estilos inline en cada vista.
+
+**Dos bugs de datos que se arreglaron de paso** (no los reintroduzcas):
+
+1. `Alumno.obtener_todos()` seleccionaba 8 columnas y las pasaba a un
+   constructor de 10 parámetros: `autorizado` volvía siempre 0, `curso_id` None y
+   el teléfono de respaldo caía en el campo `password`. Ahora el SELECT trae las
+   columnas en el mismo orden que el constructor. Cubierto por
+   `test_alumno_obtener_todos_no_desalinea_campos`.
+2. `database/setup.py` no creaba la tabla `cargo`: una base instalada desde
+   cero fallaba al leer el cargo de un usuario. Ahora está en el esquema.
+
+**Tests versionados**: `tests/` con `conftest.py`, `test_models.py`,
+`test_auth.py` y `test_gui.py`. `conftest.py` crea una base temporal por sesión
+y **aborta si apunta a la base real** (`database/app_abm.db`): para eso está
+`NEOED_DB_PATH` en `database/connection.py`. Nunca escribas tests contra la base
+real.
+
+```bash
+python -m pytest tests/ -q    # 59 tests
+```
 
 ---
 
