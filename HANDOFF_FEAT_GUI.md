@@ -145,6 +145,20 @@ Nuevo archivo: **`database/migraciones.py`** — agrega la columna `password_has
 
 Ambas tienen defensa en profundidad: los handlers vuelven a validar permiso antes de escribir, y la carga de datos también valida (las vistas se construyen siempre).
 
+**La consola CLI también gestiona notas y ausencias** (`cli/consola.py`, correr con `python -m cli.consola`):
+
+| Opción | Nivel mínimo | Acción |
+| :--- | :---: | :--- |
+| 7) Listar notas de un alumno | 5 | `Nota.obtener_por_alumno` |
+| 8) Cargar o actualizar nota | 5 | guarda o actualiza por `UNIQUE(dni, materia)` |
+| 9) Eliminar nota | 5 | por `nota_id` |
+| A) Listar ausencias de un alumno | 3 | `Ausencia.obtener_por_alumno` |
+| B) Registrar ausencia | 3 | guarda o actualiza por `UNIQUE(dni, fecha)` |
+| C) Justificar / desjustificar | 3 | alterna `justificada` |
+| D) Eliminar ausencia | 3 | por `ausencia_id` |
+
+Las opciones de notas solo se muestran para nivel ≥ 5 y las de ausencias para nivel ≥ 3, y cada acción repite el candado con `@requiere_permiso`.
+
 **Datos demo**: `database/seed_alumnos_demo.py` carga, de forma idempotente (no pisa lo existente):
 
 - 5 alumnos (DNI 45000001–45000005, contraseña `demo123`, `autorizado=1`, curso real).

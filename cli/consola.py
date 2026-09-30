@@ -1,6 +1,8 @@
 from models.personal import Personal
 from models.alumno import Alumno
 from models.acceso import Acceso
+from models.nota import Nota
+from models.ausencia import Ausencia
 from auth.permisos import requiere_permiso, PermisoDenegadoError
 from auth.autenticacion import login_unificado
 
@@ -66,6 +68,110 @@ def accion_autorizar_alumno(usuario, dni):
         print(f"Acceso denegado: {e}")
 
 
+@requiere_permiso(5)
+def accion_listar_notas(usuario, dni):
+    notas = Nota.obtener_por_alumno(dni)
+
+    if not notas:
+        print("No hay notas cargadas para ese DNI.")
+        return
+
+    for nota in notas:
+        detalle = f"[{nota.materia}] {nota.nota}"
+        if nota.comentario:
+            detalle += f" - {nota.comentario}"
+        print(detalle)
+
+
+@requiere_permiso(5)
+def accion_cargar_nota(usuario, dni, materia, nota, comentario):
+    # UNIQUE(dni, materia): si ya existe, se actualiza en el lugar.
+    existente = None
+
+    if Nota.existe(dni, materia):
+        for candidata in Nota.obtener_por_alumno(dni):
+            if candidata.materia == materia:
+                existente = candidata
+                break
+
+    if existente is not None:
+        existente.nota = int(nota)
+        existente.comentario = comentario or None
+        existente.actualizar()
+        print(f"Nota de {materia} actualizada.")
+    else:
+        nueva = Nota(
+            dni=dni, materia=materia, nota=nota, comentario=comentario
+        )
+        nueva.guardar()
+        print(f"Nota de {materia} guardada.")
+
+
+@requiere_permiso(5)
+def accion_eliminar_nota(usuario, nota_id):
+    if Nota.eliminar(nota_id):
+        print("Nota eliminada.")
+    else:
+        print("No se encontró una nota con ese ID.")
+
+
+@requiere_permiso(3)
+def accion_listar_ausencias(usuario, dni):
+    ausencias = Ausencia.obtener_por_alumno(dni)
+
+    if not ausencias:
+        print("No hay ausencias cargadas para ese DNI.")
+        return
+
+    for ausencia in ausencias:
+        estado = "Justificada" if ausencia.justificada else "No justificada"
+        print(f"[{ausencia.fecha}] {estado}")
+
+
+@requiere_permiso(3)
+def accion_cargar_ausencia(usuario, dni, fecha, justificada):
+    # UNIQUE(dni, fecha): si ya existe, se actualiza en el lugar.
+    existente = None
+
+    if Ausencia.existe(dni, fecha):
+        for candidata in Ausencia.obtener_por_alumno(dni):
+            if candidata.fecha == fecha:
+                existente = candidata
+                break
+
+    if existente is not None:
+        existente.justificada = justificada
+        existente.actualizar()
+        print(f"Ausencia del {fecha} actualizada.")
+    else:
+        nueva = Ausencia(dni=dni, fecha=fecha, justificada=justificada)
+        nueva.guardar()
+        print(f"Ausencia del {fecha} guardada.")
+
+
+@requiere_permiso(3)
+def accion_alternar_justificada_ausencia(usuario, ausencia_id):
+    ausencia = Ausencia.obtener_por_id(ausencia_id)
+
+    if ausencia is None:
+        print("No se encontró una ausencia con ese ID.")
+        return
+
+    ausencia.justificada = not ausencia.justificada
+    ausencia.actualizar()
+
+    estado = "justificada" if ausencia.justificada else "no justificada"
+    print(f"Ausencia del {ausencia.fecha} {estado}.")
+
+
+@requiere_permiso(3)
+def accion_eliminar_ausencia(usuario, ausencia_id):
+    if Ausencia.eliminar(ausencia_id):
+        print("Ausencia eliminada.")
+    else:
+        print("No se encontró una ausencia con ese ID.")
+
+
 def _mostrar_menu(usuario):
     print("\n--- MENU PRINCIPAL ---")
     print(f"Usuario: {usuario['nombre']} {usuario['apellido']} "
@@ -80,6 +186,17 @@ def _mostrar_menu(usuario):
     if usuario["tipo"] == "personal" and usuario["nivel_permisos"] >= 10:
         print("5) Eliminar alumno")
         print("6) Asignar cargo a personal")
+
+    if usuario["tipo"] == "personal" and usuario["nivel_permisos"] >= 5:
+        print("7) Listar notas de un alumno")
+        print("8) Cargar o actualizar nota")
+        print("9) Eliminar nota")
+
+    if usuario["tipo"] == "personal" and usuario["nivel_permisos"] >= 3:
+        print("A) Listar ausencias de un alumno")
+        print("B) Registrar ausencia")
+        print("C) Justificar / desjustificar ausencia")
+        print("D) Eliminar ausencia")
 
     print("0) Cerrar sesión")
 
@@ -108,6 +225,39 @@ def _ejecutar_opcion(usuario, opcion):
             dni_objetivo = int(input("DNI del personal a modificar: "))
             nuevo_cargo_id = int(input("Nuevo cargo_id: "))
             accion_asignar_cargo(usuario, dni_objetivo, nuevo_cargo_id)
+
+        elif opcion == "7":
+            dni = int(input("DNI del alumno: "))
+            accion_listar_notas(usuario, dni)
+
+        elif opcion == "8":
+            dni = int(input("DNI del alumno: "))
+            materia = input("Materia: ").strip()
+            nota = int(input("Nota: "))
+            comentario = input("Comentario (opcional; Enter para omitir): ").strip()
+            accion_cargar_nota(usuario, dni, materia, nota, comentario)
+
+        elif opcion == "9":
+            nota_id = int(input("ID de la nota: "))
+            accion_eliminar_nota(usuario, nota_id)
+
+        elif opcion.lower() == "a":
+            dni = int(input("DNI del alumno: "))
+            accion_listar_ausencias(usuario, dni)
+
+        elif opcion.lower() == "b":
+            dni = int(input("DNI del alumno: "))
+            fecha = input("Fecha (AAAA-MM-DD): ").strip()
+            justificada = input("¿Justificada? (s/n): ").strip().lower() == "s"
+            accion_cargar_ausencia(usuario, dni, fecha, justificada)
+
+        elif opcion.lower() == "c":
+            ausencia_id = int(input("ID de la ausencia: "))
+            accion_alternar_justificada_ausencia(usuario, ausencia_id)
+
+        elif opcion.lower() == "d":
+            ausencia_id = int(input("ID de la ausencia: "))
+            accion_eliminar_ausencia(usuario, ausencia_id)
 
         else:
             print("Opción inválida.")
