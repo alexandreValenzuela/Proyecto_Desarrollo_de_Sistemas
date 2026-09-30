@@ -134,6 +134,25 @@ Nuevo archivo: **`database/migraciones.py`** — agrega la columna `password_has
 - La columna `password` queda vacía en la base. La `password_hash` es la que importa.
 - Si algún día querés resetear una contraseña, usá `hashear()`.
 
+### 3.6 Registro de notas y ausencias (GUI) + datos demo
+
+**Los módulos para que el staff registre notas y ausencias ya existen y están verificados** (no hace falta crearlos):
+
+| Vista | Columna | Nivel mínimo | Acciones |
+| :--- | :--- | :---: | :--- |
+| `gui/vistas/vista_notas.py` | "Cargar / Ver Notas" | 5 (docente o superior) | alta / actualizar / eliminar, filtro por DNI |
+| `gui/vistas/vista_ausencias.py` | "Cargar / Ver Ausencias" | 3 (preceptor o superior) | alta / justificar / desjustificar / eliminar, filtro por DNI |
+
+Ambas tienen defensa en profundidad: los handlers vuelven a validar permiso antes de escribir, y la carga de datos también valida (las vistas se construyen siempre).
+
+**Datos demo**: `database/seed_alumnos_demo.py` carga, de forma idempotente (no pisa lo existente):
+
+- 5 alumnos (DNI 45000001–45000005, contraseña `demo123`, `autorizado=1`, curso real).
+- 3 notas por alumno: Matemática, Lengua e Inglés (15 en total).
+- Ausencias solo para 3 de los 5 (45000001, 45000002, 45000003; 7 registros, algunas justificadas).
+
+Correr: `python database/seed_alumnos_demo.py`. No se ejecuta al arrancar la app.
+
 ---
 
 ## 4. Dos hechos que cambian cómo escribís código
