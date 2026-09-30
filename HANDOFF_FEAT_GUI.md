@@ -210,10 +210,14 @@ Usá `tiene_permiso()` de `auth/permisos.py`. **Ocultar** los botones no permiti
 
 | Sección | Nivel mínimo |
 | :--- | :---: |
-| Ver Alumnos / Cargar Alumnos | todos |
+| Ver Alumnos / Cargar Alumnos | 3 |
 | Autorizar Alumnos | 3 |
 | Registrar Personal | 10 |
-| Profesores / Notas | todos (son placeholders) |
+| Ver Profesores | 3 |
+| Notas | 5 |
+| Ausencias | 3 |
+
+> **Regla de negocio (2026-09-29):** un alumno (`tipo=alumno`, `nivel_permisos=0`) **no** accede a ninguna sección del dashboard: entra directo a la bienvenida con solo "Cerrar Sesión", y la navegación programática también está bloqueada (`NIVELES_POR_VISTA`).
 
 **Dos lugares, no uno:**
 - El **sidebar** (`gui/ventana_principal.py:150-193`)

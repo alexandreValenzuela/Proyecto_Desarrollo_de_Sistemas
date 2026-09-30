@@ -41,8 +41,10 @@ VISTA_NOTAS = 6
 VISTA_AUSENCIAS = 7
 
 # Niveles minimos de las secciones restringidas.
+NIVEL_ALUMNOS = 3            # ver / cargar alumnos (alta institucional)
 NIVEL_AUTORIZAR = 3
 NIVEL_REGISTRAR_PERSONAL = 10
+NIVEL_PROFESORES = 3         # listado de personal (expone DNI del staff)
 NIVEL_NOTAS = 5
 NIVEL_AUSENCIAS = 3
 
@@ -52,8 +54,11 @@ class VentanaPrincipal(QMainWindow):
     # Candado de navegacion: nivel minimo por vista. Las secciones que no
     # aparecen acá son públicas para cualquier nivel.
     NIVELES_POR_VISTA = {
+        VISTA_VER_ALUMNOS: NIVEL_ALUMNOS,
+        VISTA_CARGAR_ALUMNOS: NIVEL_ALUMNOS,
         VISTA_AUTORIZAR: NIVEL_AUTORIZAR,
         VISTA_REGISTRAR_PERSONAL: NIVEL_REGISTRAR_PERSONAL,
+        VISTA_PROFESORES: NIVEL_PROFESORES,
         VISTA_NOTAS: NIVEL_NOTAS,
         VISTA_AUSENCIAS: NIVEL_AUSENCIAS,
     }
@@ -78,7 +83,12 @@ class VentanaPrincipal(QMainWindow):
         self._crear_menu_central()
         self._crear_dashboard_sidebar()
 
-        self.stack_global.setCurrentIndex(0)
+        # Un alumno (nivel 0) no tiene secciones en el menu central: entra
+        # directo al dashboard de bienvenida, donde puede cerrar sesion.
+        if tiene_permiso(self.usuario, NIVEL_ALUMNOS):
+            self.stack_global.setCurrentIndex(0)
+        else:
+            self.stack_global.setCurrentIndex(1)
 
     # ========================================================================
     # MENU CENTRALIZADO (Draw.io SSOT — spec 5.3)
@@ -123,6 +133,8 @@ class VentanaPrincipal(QMainWindow):
         layout.addLayout(self._centrar(self.btn_personal_menu))
 
         # Secciones restringidas: ocultas, nunca deshabilitadas.
+        self.btn_crear.setVisible(tiene_permiso(self.usuario, NIVEL_ALUMNOS))
+        self.btn_ver_menu.setVisible(tiene_permiso(self.usuario, NIVEL_ALUMNOS))
         self.btn_autorizar_menu.setVisible(
             tiene_permiso(self.usuario, NIVEL_AUTORIZAR)
         )
@@ -208,7 +220,8 @@ class VentanaPrincipal(QMainWindow):
         layout.addWidget(lbl_logo)
 
         # Grupo Alumnos
-        layout.addWidget(self._label_grupo("ALUMNOS"))
+        self.lbl_grupo_alumnos = self._label_grupo("ALUMNOS")
+        layout.addWidget(self.lbl_grupo_alumnos)
 
         self.btn_ver = self._boton_sidebar("Ver Alumnos", VISTA_VER_ALUMNOS)
         layout.addWidget(self.btn_ver)
@@ -217,7 +230,8 @@ class VentanaPrincipal(QMainWindow):
         layout.addWidget(self.btn_cargar)
 
         # Grupo Personal
-        layout.addWidget(self._label_grupo("PERSONAL"))
+        self.lbl_grupo_personal = self._label_grupo("PERSONAL")
+        layout.addWidget(self.lbl_grupo_personal)
 
         self.btn_autorizar = self._boton_sidebar("Autorizar Alumnos", VISTA_AUTORIZAR)
         layout.addWidget(self.btn_autorizar)
@@ -228,6 +242,8 @@ class VentanaPrincipal(QMainWindow):
         layout.addWidget(self.btn_registrar)
 
         # Secciones restringidas: ocultas, nunca deshabilitadas.
+        self.btn_ver.setVisible(tiene_permiso(self.usuario, NIVEL_ALUMNOS))
+        self.btn_cargar.setVisible(tiene_permiso(self.usuario, NIVEL_ALUMNOS))
         self.btn_autorizar.setVisible(
             tiene_permiso(self.usuario, NIVEL_AUTORIZAR)
         )
@@ -236,13 +252,16 @@ class VentanaPrincipal(QMainWindow):
         )
 
         # Grupo Profesores
-        layout.addWidget(self._label_grupo("PROFESORES"))
+        self.lbl_grupo_profesores = self._label_grupo("PROFESORES")
+        layout.addWidget(self.lbl_grupo_profesores)
 
         self.btn_profes = self._boton_sidebar("Ver Profesores", VISTA_PROFESORES)
         layout.addWidget(self.btn_profes)
+        self.btn_profes.setVisible(tiene_permiso(self.usuario, NIVEL_PROFESORES))
 
         # Grupo Notas
-        layout.addWidget(self._label_grupo("NOTAS Y INFORMES"))
+        self.lbl_grupo_notas = self._label_grupo("NOTAS Y INFORMES")
+        layout.addWidget(self.lbl_grupo_notas)
 
         self.btn_notas = self._boton_sidebar("Cargar / Ver Notas", VISTA_NOTAS)
         layout.addWidget(self.btn_notas)
@@ -258,11 +277,16 @@ class VentanaPrincipal(QMainWindow):
             tiene_permiso(self.usuario, NIVEL_AUSENCIAS)
         )
 
+        # Un grupo sin botones visibles no muestra su rotulo.
+        self._sincronizar_grupos()
+
         layout.addStretch()
 
         # Volver al Menu
         self.btn_menu = QPushButton("Volver al Menu")
         self.btn_menu.setObjectName("BtnSidebarItem")
+        # El alumno entra directo al dashboard: volver al menu no le aporta.
+        self.btn_menu.setVisible(tiene_permiso(self.usuario, NIVEL_ALUMNOS))
         self.btn_menu.clicked.connect(self._volver_al_menu_central)
         layout.addWidget(self.btn_menu)
 
@@ -288,6 +312,22 @@ class VentanaPrincipal(QMainWindow):
         lbl = QLabel(texto)
         lbl.setObjectName("SidebarGroupLabel")
         return lbl
+
+    def _sincronizar_grupos(self):
+        """Oculta los rotulos de grupo cuando no queda ningun boton visible.
+
+        Usa isHidden(): durante la construccion la ventana todavia no se
+        mostro, asi que isVisible() devolveria False para todo. isHidden()
+        refleja la visibilidad explicita de cada boton.
+        """
+        grupos = {
+            self.lbl_grupo_alumnos: [self.btn_ver, self.btn_cargar],
+            self.lbl_grupo_personal: [self.btn_autorizar, self.btn_registrar],
+            self.lbl_grupo_profesores: [self.btn_profes],
+            self.lbl_grupo_notas: [self.btn_notas, self.btn_ausencias],
+        }
+        for label, botones in grupos.items():
+            label.setVisible(any(not b.isHidden() for b in botones))
 
     # ========================================================================
     # NAVEGACION
