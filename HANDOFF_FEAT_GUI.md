@@ -20,7 +20,7 @@ cli/consola.py       menú por terminal, replica las acciones de la GUI
 ```
 
 Base de datos: 7 tablas (`cargo`, `curso`, `alumnos`, `personal`, `notas`, `accesos`, `ausencias`).
-`notas` ya tiene modelo (`models/nota.py`); `ausencias` sigue sin modelo ni vista.
+**Las 7 tienen modelo.** Lo que falta son las vistas de notas y ausencias, que son tuyas.
 
 Niveles de permiso, definidos en `database/seed.py`:
 
@@ -93,7 +93,25 @@ Nota.existe(dni, materia) / Nota.eliminar_por_alumno(dni)
 
 Si ya tenés una vista de notas, **revisala**: cualquier consulta que lea `notas` directo necesita el `dni`. Las notas se cargan por alumno, no todas juntas.
 
-### 3.4 Hashing de contraseñas — commit `e15e18f`, rama `feat/seguridad`
+### 3.4 Modelo de Ausencias — commit `feat/accesos`, ya mergeado a `main`
+
+Nuevo archivo: **`models/ausencia.py`**. Ya **no queda ninguna tabla sin modelo**.
+
+```python
+Ausencia(dni, fecha, justificada)     # fecha es "AAAA-MM-DD"
+ausencia.guardar() / ausencia.actualizar() / Ausencia.eliminar(ausencia_id)
+Ausencia.obtener_por_alumno(dni, desde=None, hasta=None)
+Ausencia.obtener_todas(solo_justificadas=False)
+Ausencia.existe(dni, fecha)
+Ausencia.contar_por_alumno(dni, solo_justificadas=False)
+Ausencia.eliminar_por_alumno(dni)
+```
+
+`justificada` es booleano. La fecha se valida como fecha real: `2026-02-30` se rechaza, no se guarda.
+
+**El esquema de `ausencias` cambió:** ahora tiene `UNIQUE(dni, fecha)`. Un alumno no puede tener dos ausencias el mismo día. Para justificar una ausencia ya cargada, usá `actualizar()`.
+
+### 3.5 Hashing de contraseñas — commit `e15e18f`, rama `feat/seguridad`
 
 **Las contraseñas ya NO se guardan en texto plano.** PBKDF2-HMAC-SHA256, 260.000 iteraciones, sal aleatoria de 16 bytes por usuario.
 
@@ -144,6 +162,7 @@ Tus archivos: `gui/`, `main.py`, `cli/`. Ninguno se solapa con `feat/datos`.
 | A4 | `gui/vistas/vista_cargar_alumnos.py:118` y `gui/vistas/vista_registrar_personal.py:135` | Botón "Volver" existe pero **no tiene `.connect()`**. Botón muerto. |
 | A5 | `gui/vistas/vista_ver_alumnos.py:88` | Llama a `_volver_al_menu()` pero `_menu_callback` nunca se setea: nadie invoca `set_menu_callback`. Cablealo desde `ventana_principal.py`. |
 | A6 | `gui/ventana_principal.py:180-193` | "Ver Profesores" y "Cargar / Ver Notas" apuntan ambos al índice 5, así que la 2ª sección nunca muestra nada distinto. Separalos en dos placeholders. |
+| A9 | `gui/ventana_principal.py` | Notas y Ausencias ya tienen modelo (`models/nota.py`, `models/ausencia.py`). Si te alcanza el tiempo, las vistas reemplazan a los placeholders. |
 | A7 | `gui/ventana_login.py:41` | Placeholder dice "Nombre de usuario" pero el login busca por DNI. Corregí el texto. |
 | A8 | `cli/consola.py` | La opción "0) Cerrar sesión" mata el proceso en vez de volver al login. El menú dice una cosa y hace otra. |
 
@@ -207,24 +226,18 @@ Los 5 formularios: `vista_cargar_alumnos`, `vista_registrar_personal`, `vista_au
 | Refactor a ventana única | `main.py` mantiene un dict de ventanas top-level y las muestra con `.show()`. Contradice la spec §1.2, que dice explícitamente que ese patrón falló. |
 | Doble fila en `accesos` | `auth/autenticacion.py:19-25`: si `Personal.login` falla ya escribió un acceso fallido, y después `Alumno.login` escribe el exitoso. Cada login de alumno deja **2 filas**. |
 | `notas` | **RESUELTO**: modelo en `models/nota.py`. Ver §3.3. La vista sigue siendo tuya. |
-| `ausencias` | Tabla creada, **sin modelo ni vista**. |
-| Doble fila en `accesos` | **Sigue pendiente.** Ver §6.1. |
+| `ausencias` | **RESUELTO**: modelo en `models/ausencia.py`. Ver §3.4. La vista sigue siendo tuya. |
+| Doble fila en `accesos` | **RESUELTO**. Ver §6.1. |
 | Tests | No hay ninguno. |
 | `.db` versionada | Ya resuelta en `main` (commit `9b61f5a`). |
 
-### 6.1 Doble fila en `accesos` — pendiente, archivo NUESTRO
+### 6.1 Doble fila en `accesos` — **RESUELTO** en `feat/accesos`
 
-Verificado empíricamente, no es una sospecha:
+Estaba así: login de alumno dejaba 2 filas y los intentos fallidos se contaban doble. Ya está corregido: **cada intento deja exactamente 1 fila**, tenga o no éxito.
 
-| Escenario | Filas que deja | Correcto |
-| :--- | :---: | :---: |
-| Login de personal válido | 1 | 1 ✅ |
-| Login de alumno válido | **2** (una fallida + una exitosa) | 1 ❌ |
-| Login con DNI inexistente | **2** (dos fallidas) | 1 ❌ |
+`Personal.login` y `Alumno.login` aceptan ahora un parámetro `registrar_acceso=True`. Si llamás a esos métodos directo, no cambies nada: sigue registrando igual. Solo `auth/autenticacion.py` los llama con `False` y registra una sola vez al final.
 
-Causa: `auth/autenticacion.py:19` llama a `Personal.login` para probar. Si el DNI es de un alumno, ese intento **falla y queda registrado** en `accesos` antes de que `Alumno.login` escriba el exitoso. Cada login de alumno duplica, y **los intentos fallidos se cuentan doble** — que es justo el dato que sirve para detectar fuerza bruta.
-
-**No lo toques**: `auth/` es scope nuestro. Si te bloquea alguna prueba, avisame y lo arreglo.
+**Lo que cambia para vos:** nada. `login_unificado(dni, password)` tiene la misma firma y ahora es correcto. Si tu vista mostraba el historial de accesos, los conteos van a bajar — antes contaban doble.
 
 ---
 
