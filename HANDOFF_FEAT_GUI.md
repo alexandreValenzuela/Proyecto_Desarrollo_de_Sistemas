@@ -136,11 +136,27 @@ Nuevo archivo: **`database/migraciones.py`** — agrega la columna `password_has
 
 ## 4. Dos hechos que cambian cómo escribís código
 
-### 4.1 El combo de cursos ya tiene datos
+### 4.1 El combo de cursos ya tiene los 26 datos reales
 
-`Curso.obtener_todos()` devuelve `1A1A`, `1B1B`, `2A2A`, `2B2B`, `3A3A`, `3B3B`. Podés probar el formulario real sin esperar el merge.
+`Curso.obtener_todos()` devuelve los 26 cursos reales:
 
-El CHECK de `database/setup.py` en la tabla `curso` exige 4 caracteres con patrón `[0-9][A-Z][0-9][A-Z]`. Nada más entra.
+```
+Nivel 1 (6 grupos):  N1G1  N1G2  N1G3  N1G4  N1G5  N1G6
+Niveles 2 a 6 (4 c/u): N2G1..N2G4   N3G1..N3G4   N4G1..N4G4
+                       N5G1..N5G4   N6G1..N6G4
+```
+
+El formato es `N<nivel>G<grupo>`: **N1G1 es nivel 1, grupo 1**. El nivel 1
+tiene 6 grupos y los niveles 2 a 6 tienen 4 cada uno.
+
+**No hardcodees nombres de curso en las vistas.** Traelos siempre con
+`Curso.obtener_todos()` y usá el `curso_id` que te devuelve cada objeto. Los
+cursos cambian con el tiempo y una lista fija en el `.ui` o en el código se
+rompe.
+
+El CHECK de `database/setup.py` en la tabla `curso` exige 4 caracteres con
+patrón `[A-Z][0-9][A-Z][0-9]`. `Curso.validar_datos()` además rechaza
+niveles fuera de 1..6 y grupos que no correspondan al nivel.
 
 ### 4.2 Ya NO hace falta `conexion.commit()`
 

@@ -49,17 +49,22 @@ def cargar_datos_iniciales():
 
         # ---------------------------------------------------------------------
         # CURSOS
-        # El CHECK de database/setup.py exige 4 caracteres con el patron
-        # [0-9][A-Z][0-9][A-Z] (ej: 1A1A). "1°A" o "Primero A" son invalidos.
+        # Formato N<nivel>G<grupo>: "N1G1" es nivel 1, grupo 1.
+        # El nivel 1 tiene 6 grupos; los niveles 2 a 6 tienen 4 cada uno.
+        # El CHECK de database/setup.py exige el patron [A-Z][0-9][A-Z][0-9].
+        # Se generan en vez de escribirse a mano: son 26 y cambian seguido.
         # ---------------------------------------------------------------------
 
+        GRUPOS_POR_NIVEL = {1: 6}
+        GRUPOS_POR_DEFECTO = 4
+        NIVEL_MAXIMO = 6
+
         cursos = [
-            ("1A1A",),
-            ("1B1B",),
-            ("2A2A",),
-            ("2B2B",),
-            ("3A3A",),
-            ("3B3B",)
+            (f"N{nivel}G{grupo}",)
+            for nivel in range(1, NIVEL_MAXIMO + 1)
+            for grupo in range(
+                1, GRUPOS_POR_NIVEL.get(nivel, GRUPOS_POR_DEFECTO) + 1
+            )
         ]
 
         cursor.executemany(

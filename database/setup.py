@@ -11,23 +11,10 @@ def inicio():
         cursor = conexion.cursor()
 
         # ---------------------------------------------------------------------
-        # CARGOS
-        # ---------------------------------------------------------------------
-
-        cursor.execute(
-            '''
-            CREATE TABLE IF NOT EXISTS cargo (
-                cargo_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                cargo TEXT NOT NULL UNIQUE
-                CHECK(length(cargo) <= 255),
-                nivel_permisos INTEGER NOT NULL
-            )
-            '''
-        )
-
-        # ---------------------------------------------------------------------
         # CURSOS
-        # Ejemplo válido: 1N2G
+        # Formato N<nivel>G<grupo>: "N1G1" es nivel 1, grupo 1.
+        # El nivel 1 tiene 6 grupos, los niveles 2 a 6 tienen 4 cada uno.
+        # Ejemplo válido: N1G1
         # ---------------------------------------------------------------------
 
         cursor.execute(
@@ -37,7 +24,7 @@ def inicio():
                 curso TEXT NOT NULL UNIQUE,
                 CHECK(length(curso) = 4),
                 CHECK(
-                    curso GLOB '[0-9][A-Z][0-9][A-Z]'
+                    curso GLOB '[A-Z][0-9][A-Z][0-9]'
                 )
             )
             '''
