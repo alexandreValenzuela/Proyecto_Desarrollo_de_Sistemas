@@ -1,6 +1,7 @@
 import sqlite3
 from database.connection import obtener_conexion
 from auth.permisos import PermisoDenegadoError
+from auth.passwords import hashear, verificar
 
 class Personal:
     def __init__(
@@ -91,18 +92,19 @@ class Personal:
                         personal.nombre,
                         personal.apellido,
                         cargo.cargo,
-                        cargo.nivel_permisos
+                        cargo.nivel_permisos,
+                        personal.password_hash
 
                     FROM personal
                     INNER JOIN cargo ON personal.cargo_id = cargo.cargo_id
-                    WHERE personal.dni = ? AND personal.password = ?
+                    WHERE personal.dni = ?
                     """,
-                    (dni, password)
+                    (dni,)
                 )
 
                 usuario = cursor.fetchone()
 
-                if usuario:
+                if usuario and verificar(password, usuario[5]):
                     Acceso.registrar(dni, exitoso=True)
 
                     return {
@@ -144,10 +146,11 @@ class Personal:
                         direccion,
                         telefono,
                         cargo_id,
-                        password
+                        password,
+                        password_hash
                     )
 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 
                     """,
                     (
@@ -157,7 +160,8 @@ class Personal:
                         self.direccion,
                         self.telefono,
                         self.cargo_id,
-                        self.password
+                        "",
+                        hashear(self.password)
                     )
                 )
 
@@ -322,7 +326,9 @@ class Personal:
 
                         cargo_id = ?,
 
-                        password = ?
+                        password = ?,
+
+                        password_hash = ?
 
                     WHERE dni = ?
 
@@ -333,7 +339,8 @@ class Personal:
                         self.direccion,
                         self.telefono,
                         self.cargo_id,
-                        self.password,
+                        "",
+                        hashear(self.password),
                         self.dni
                     )
                 )

@@ -1,6 +1,7 @@
 import sqlite3
 from datetime import datetime
 from auth.permisos import PermisoDenegadoError
+from auth.passwords import hashear, verificar
 
 from database.connection import obtener_conexion
 
@@ -129,9 +130,10 @@ class Alumno:
                         telefono_respaldo,
                         curso_id,
                         password,
+                        password_hash,
                         autorizado
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         self.dni,
@@ -142,7 +144,9 @@ class Alumno:
                         self.telefono,
                         self.telefono_respaldo,
                         self.curso_id,
-                        self.password,
+                        # La columna "password" queda vacia: el hash va aparte.
+                        "",
+                        hashear(self.password),
                         self.autorizado
                     )
                 )
@@ -335,13 +339,15 @@ class Alumno:
             with obtener_conexion() as conexion:
                 cursor = conexion.cursor()
 
+                # Se busca por DNI solamente. La contrasena se verifica
+                # en Python contra el hash: no se puede filtrar en SQL.
                 cursor.execute(
                     """
-                    SELECT dni, nombre, apellido, autorizado
+                    SELECT dni, nombre, apellido, autorizado, password_hash
                     FROM alumnos
-                    WHERE dni = ? AND password = ?
+                    WHERE dni = ?
                     """,
-                    (dni, password)
+                    (dni,)
                 )
 
                 fila = cursor.fetchone()
@@ -350,7 +356,11 @@ class Alumno:
                     Acceso.registrar(dni, exitoso=False)
                     return None
 
-                dni_encontrado, nombre, apellido, autorizado = fila
+                dni_encontrado, nombre, apellido, autorizado, hash_almacenado = fila
+
+                if not verificar(password, hash_almacenado):
+                    Acceso.registrar(dni, exitoso=False)
+                    return None
 
                 if not autorizado:
                     Acceso.registrar(dni, exitoso=False)

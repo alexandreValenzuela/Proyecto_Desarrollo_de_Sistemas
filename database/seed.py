@@ -1,5 +1,6 @@
 import sqlite3
 
+from auth.passwords import hashear
 from database.connection import obtener_conexion
 
 def cargar_datos_iniciales():
@@ -78,6 +79,8 @@ def cargar_datos_iniciales():
         # PERSONAL
         # ---------------------------------------------------------------------
 
+        # Cada password se hashea antes de insertar. El texto plano solo
+        # existe en este archivo, nunca en la base de datos.
         personal = [
 
             (
@@ -122,13 +125,19 @@ def cargar_datos_iniciales():
                 direccion,
                 telefono,
                 cargo_id,
-                password
+                password,
+                password_hash
             )
 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 
             """,
-            personal
+            [
+                (dni, nombre, apellido, direccion, telefono, cargo_id, "",
+                 hashear(password))
+                for (dni, nombre, apellido, direccion, telefono, cargo_id,
+                     password) in personal
+            ]
         )
 
         conexion.commit()

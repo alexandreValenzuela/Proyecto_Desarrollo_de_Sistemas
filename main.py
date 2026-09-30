@@ -6,6 +6,7 @@ Flujo de navegacion (Draw.io SSOT):
   Landing -> Login -> Menu Principal (centralizado) -> Dashboard (Sidebar + vistas)
 """
 from database.setup import inicio
+from database.migraciones import migraciones
 from database.seed import cargar_datos_iniciales
 
 
@@ -66,6 +67,11 @@ def ejecutar_por_interfaz():
 
 def ejecutar_aplicacion():
     inicio()
+
+    # La migracion debe correr antes del seed: el seed inserta en
+    # password_hash, columna que crea la migracion.
+    migraciones()
+
     cargar_datos_iniciales()
 
     modo = input("Consola o interfaz? (c/i): ").strip().lower()
