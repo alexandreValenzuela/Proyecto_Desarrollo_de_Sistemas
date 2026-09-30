@@ -52,3 +52,24 @@ class Acceso:
 
         except sqlite3.Error as e:
             raise RuntimeError(f"Error al obtener historial de accesos: {e}")
+
+    @classmethod
+    def historial(cls):
+        """Todos los intentos de acceso, del mas reciente al mas antiguo."""
+
+        try:
+            with obtener_conexion() as conexion:
+                cursor = conexion.cursor()
+
+                cursor.execute(
+                    """
+                    SELECT acceso_id, dni, fecha_hora, exitoso
+                    FROM accesos
+                    ORDER BY fecha_hora DESC
+                    """
+                )
+
+                return cursor.fetchall()
+
+        except sqlite3.Error as e:
+            raise RuntimeError(f"Error al obtener historial de accesos: {e}")

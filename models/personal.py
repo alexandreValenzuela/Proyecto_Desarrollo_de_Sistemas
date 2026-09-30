@@ -133,6 +133,92 @@ class Personal:
             raise RuntimeError(f"Error al iniciar sesión: {e}")
 
     # -------------------------------------------------------------------------
+    # CONTRASEÑAS
+    # -------------------------------------------------------------------------
+
+    @classmethod
+    def cambiar_password(cls, dni, password_actual, password_nueva):
+        """
+        Cambio de contrasena por parte del propio usuario: exige conocer la
+        contrasena actual antes de reemplazar el hash.
+        """
+        from auth.passwords import validar_contrasena
+
+        validar_contrasena(password_nueva)
+
+        try:
+            with obtener_conexion() as conexion:
+                cursor = conexion.cursor()
+
+                cursor.execute(
+                    "SELECT password_hash FROM personal WHERE dni = ?",
+                    (dni,)
+                )
+
+                fila = cursor.fetchone()
+
+                if not fila:
+                    raise ValueError("No se encontró el personal con ese DNI.")
+
+                if not verificar(password_actual, fila[0]):
+                    raise ValueError("La contraseña actual no es correcta.")
+
+                cursor.execute(
+                    """
+                    UPDATE personal
+                    SET password_hash = ?, password = ''
+                    WHERE dni = ?
+                    """,
+                    (hashear(password_nueva), dni)
+                )
+
+                conexion.commit()
+
+                return cursor.rowcount > 0
+
+        except sqlite3.Error as e:
+            raise RuntimeError(f"Error al cambiar la contraseña: {e}")
+
+    @classmethod
+    def resetear_password(cls, dni, password_nueva):
+        """
+        Reseteo de contrasena por parte de un administrador: no exige la
+        contrasena actual. Devuelve None si el DNI no es de personal (asi el
+        llamador puede probar contra 'alumnos').
+        """
+        from auth.passwords import validar_contrasena
+
+        validar_contrasena(password_nueva)
+
+        try:
+            with obtener_conexion() as conexion:
+                cursor = conexion.cursor()
+
+                cursor.execute(
+                    "SELECT dni FROM personal WHERE dni = ?",
+                    (dni,)
+                )
+
+                if cursor.fetchone() is None:
+                    return None
+
+                cursor.execute(
+                    """
+                    UPDATE personal
+                    SET password_hash = ?, password = ''
+                    WHERE dni = ?
+                    """,
+                    (hashear(password_nueva), dni)
+                )
+
+                conexion.commit()
+
+                return cursor.rowcount > 0
+
+        except sqlite3.Error as e:
+            raise RuntimeError(f"Error al resetear la contraseña: {e}")
+
+    # -------------------------------------------------------------------------
     # CREATE
     # -------------------------------------------------------------------------
 

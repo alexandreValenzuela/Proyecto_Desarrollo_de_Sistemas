@@ -240,6 +240,16 @@ class Nota:
             raise RuntimeError(f"Error al obtener materias: {e}")
 
     @classmethod
+    def promedio_por_alumno(cls, dni):
+        """Promedio general de las notas de un alumno, o None si no tiene."""
+        notas = cls.obtener_por_alumno(dni)
+
+        if not notas:
+            return None
+
+        return sum(n.nota for n in notas) / len(notas)
+
+    @classmethod
     def existe(cls, dni, materia):
 
         try:

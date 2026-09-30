@@ -104,6 +104,88 @@ class Alumno:
         return True
 
     # -------------------------------------------------------------------------
+    # CONTRASEÑAS
+    # -------------------------------------------------------------------------
+
+    @classmethod
+    def cambiar_password(cls, dni, password_actual, password_nueva):
+        """Cambio de contrasena por el propio alumno: exige la actual."""
+        from auth.passwords import validar_contrasena
+
+        validar_contrasena(password_nueva)
+
+        try:
+            with obtener_conexion() as conexion:
+                cursor = conexion.cursor()
+
+                cursor.execute(
+                    "SELECT password_hash FROM alumnos WHERE dni = ?",
+                    (dni,)
+                )
+
+                fila = cursor.fetchone()
+
+                if not fila:
+                    raise ValueError("No se encontró el alumno con ese DNI.")
+
+                if not verificar(password_actual, fila[0]):
+                    raise ValueError("La contraseña actual no es correcta.")
+
+                cursor.execute(
+                    """
+                    UPDATE alumnos
+                    SET password_hash = ?, password = ''
+                    WHERE dni = ?
+                    """,
+                    (hashear(password_nueva), dni)
+                )
+
+                conexion.commit()
+
+                return cursor.rowcount > 0
+
+        except sqlite3.Error as e:
+            raise RuntimeError(f"Error al cambiar la contraseña: {e}")
+
+    @classmethod
+    def resetear_password(cls, dni, password_nueva):
+        """
+        Reseteo por un administrador: no exige la contrasena actual.
+        Devuelve None si el DNI no es de un alumno.
+        """
+        from auth.passwords import validar_contrasena
+
+        validar_contrasena(password_nueva)
+
+        try:
+            with obtener_conexion() as conexion:
+                cursor = conexion.cursor()
+
+                cursor.execute(
+                    "SELECT dni FROM alumnos WHERE dni = ?",
+                    (dni,)
+                )
+
+                if cursor.fetchone() is None:
+                    return None
+
+                cursor.execute(
+                    """
+                    UPDATE alumnos
+                    SET password_hash = ?, password = ''
+                    WHERE dni = ?
+                    """,
+                    (hashear(password_nueva), dni)
+                )
+
+                conexion.commit()
+
+                return cursor.rowcount > 0
+
+        except sqlite3.Error as e:
+            raise RuntimeError(f"Error al resetear la contraseña: {e}")
+
+    # -------------------------------------------------------------------------
     # CREATE
     # -------------------------------------------------------------------------
 
@@ -210,6 +292,13 @@ class Alumno:
 
                 cursor = conexion.cursor()
 
+                # Las columnas van en el MISMO orden que el constructor
+                # (dni, nombre, apellido, direccion, fecha_nacimiento,
+                # telefono, password, telefono_respaldo, curso_id,
+                # autorizado). Con un SELECT mas corto, cls(*fila) corren
+                # los valores de una columna y el alumno volvia con
+                # autorizado=0, curso_id=None y el telefono de respaldo
+                # seguido en el password.
                 cursor.execute(
                     """
                     SELECT
@@ -219,8 +308,10 @@ class Alumno:
                         direccion,
                         fecha_nacimiento,
                         telefono,
+                        password,
                         telefono_respaldo,
-                        curso_id
+                        curso_id,
+                        autorizado
                     FROM alumnos
                     """
                 )
