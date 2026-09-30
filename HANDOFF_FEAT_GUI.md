@@ -20,7 +20,7 @@ cli/consola.py       menú por terminal, replica las acciones de la GUI
 ```
 
 Base de datos: 7 tablas (`cargo`, `curso`, `alumnos`, `personal`, `notas`, `accesos`, `ausencias`).
-`notas` y `ausencias` existen pero **no tienen modelo ni vista**. Es alcance futuro.
+`notas` ya tiene modelo (`models/nota.py`); `ausencias` sigue sin modelo ni vista.
 
 Niveles de permiso, definidos en `database/seed.py`:
 
@@ -78,7 +78,22 @@ Cinco archivos. **Ninguno es tuyo.** No hay conflicto posible.
 | `models/alumno.py` | `except sqlite3.Error` agregado al `guardar()`. |
 | `models/personal.py` | `except sqlite3.Error` agregado al `guardar()`. |
 
-### 3.3 Hashing de contraseñas — commit `e15e18f`, rama `feat/seguridad`
+### 3.3 Modelo de Notas — commit `feat/notas`, ya mergeado a `main`
+
+Nuevo archivo: **`models/nota.py`**. La tabla `notas` **ya no es código muerto**: tiene modelo completo.
+
+```python
+Nota(dni, materia, nota, comentario=None)   # comentario es opcional
+nota.guardar() / nota.actualizar() / Nota.eliminar(nota_id)
+Nota.obtener_por_alumno(dni) / Nota.obtener_todas() / Nota.obtener_por_id(id)
+Nota.existe(dni, materia) / Nota.eliminar_por_alumno(dni)
+```
+
+**El esquema de `notas` cambió.** Ahora tiene `dni` (FK a `alumnos`), `comentario` acepta NULL, y una restricción `UNIQUE(dni, materia)`: un alumno no puede tener dos notas de la misma materia. Para cambiar una nota, usá `actualizar()` sobre la existente, no `guardar()` de nuevo.
+
+Si ya tenés una vista de notas, **revisala**: cualquier consulta que lea `notas` directo necesita el `dni`. Las notas se cargan por alumno, no todas juntas.
+
+### 3.4 Hashing de contraseñas — commit `e15e18f`, rama `feat/seguridad`
 
 **Las contraseñas ya NO se guardan en texto plano.** PBKDF2-HMAC-SHA256, 260.000 iteraciones, sal aleatoria de 16 bytes por usuario.
 
@@ -191,9 +206,25 @@ Los 5 formularios: `vista_cargar_alumnos`, `vista_registrar_personal`, `vista_au
 | ~~Hashing de contraseñas~~ | **RESUELTO** en `feat/seguridad`. Ver §3.3. |
 | Refactor a ventana única | `main.py` mantiene un dict de ventanas top-level y las muestra con `.show()`. Contradice la spec §1.2, que dice explícitamente que ese patrón falló. |
 | Doble fila en `accesos` | `auth/autenticacion.py:19-25`: si `Personal.login` falla ya escribió un acceso fallido, y después `Alumno.login` escribe el exitoso. Cada login de alumno deja **2 filas**. |
-| `notas` / `ausencias` | Tablas creadas, sin modelo ni vista. |
+| `notas` | **RESUELTO**: modelo en `models/nota.py`. Ver §3.3. La vista sigue siendo tuya. |
+| `ausencias` | Tabla creada, **sin modelo ni vista**. |
+| Doble fila en `accesos` | **Sigue pendiente.** Ver §6.1. |
 | Tests | No hay ninguno. |
 | `.db` versionada | Ya resuelta en `main` (commit `9b61f5a`). |
+
+### 6.1 Doble fila en `accesos` — pendiente, archivo NUESTRO
+
+Verificado empíricamente, no es una sospecha:
+
+| Escenario | Filas que deja | Correcto |
+| :--- | :---: | :---: |
+| Login de personal válido | 1 | 1 ✅ |
+| Login de alumno válido | **2** (una fallida + una exitosa) | 1 ❌ |
+| Login con DNI inexistente | **2** (dos fallidas) | 1 ❌ |
+
+Causa: `auth/autenticacion.py:19` llama a `Personal.login` para probar. Si el DNI es de un alumno, ese intento **falla y queda registrado** en `accesos` antes de que `Alumno.login` escriba el exitoso. Cada login de alumno duplica, y **los intentos fallidos se cuentan doble** — que es justo el dato que sirve para detectar fuerza bruta.
+
+**No lo toques**: `auth/` es scope nuestro. Si te bloquea alguna prueba, avisame y lo arreglo.
 
 ---
 
