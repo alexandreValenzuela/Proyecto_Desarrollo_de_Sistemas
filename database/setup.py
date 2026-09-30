@@ -182,7 +182,9 @@ def inicio():
 
 
                 FOREIGN KEY(dni)
-                REFERENCES alumnos(dni)
+                REFERENCES alumnos(dni),
+
+                UNIQUE(dni, fecha)
             )
             '''
         )
