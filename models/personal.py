@@ -169,6 +169,10 @@ class Personal:
 
             raise ValueError("Ya existe un personal con ese DNI.")
 
+        except sqlite3.Error as e:
+
+            raise RuntimeError(f"Error al guardar personal: {e}")
+
     # -------------------------------------------------------------------------
     # ASIGNAR CARGO
     # -------------------------------------------------------------------------
