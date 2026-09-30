@@ -2,7 +2,7 @@
 
 > Documento de traspaso. Al leerlo vas a saber: qué hace el sistema, qué se rompió y ya se arregló, qué falta, y qué archivos son tuyos.
 >
-> Fecha: 2026-09-29 · Rama del receptor: `feat/gui` · Ramas del emisor: `feat/datos` (mergeada) y `feat/seguridad` (en curso)
+> Estado actual (2026-09-29): **`feat/gui` ya está mergeada en `main` (commit `8ba290e`) y verificada con smoke tests offscreen.** Los apartados que describen trabajo pendiente del receptor ya no aplican y se conservan como referencia de decisiones. Rama del emisor: `main`.
 
 ---
 
@@ -15,12 +15,12 @@ main.py              entrada: pregunta consola/interfaz, luego Landing → Login
 auth/                autenticacion.login_unificado, permisos (decorador + tiene_permiso)
 models/              Alumno, Personal, Curso, Cargo, Acceso
 database/            connection (contextmanager), setup (7 tablas), seed
-gui/                 estilos.py, componentes.py, 4 ventanas, 6 vistas
+gui/                 estilos.py, componentes.py, 4 ventanas, 8 vistas
 cli/consola.py       menú por terminal, replica las acciones de la GUI
 ```
 
 Base de datos: 7 tablas (`cargo`, `curso`, `alumnos`, `personal`, `notas`, `accesos`, `ausencias`).
-**Las 7 tienen modelo.** Lo que falta son las vistas de notas y ausencias, que son tuyas.
+**Las 7 tienen modelo y todas tienen vista en la GUI mergeada** (`ver_alumnos`, `cargar_alumnos`, `autorizar`, `registrar_personal`, `profesores` placeholder, `notas`, `ausencias`).
 
 Niveles de permiso, definidos en `database/seed.py`:
 
