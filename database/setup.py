@@ -31,6 +31,24 @@ def inicio():
         )
 
         # ---------------------------------------------------------------------
+        # CARGOS (roles del sistema)
+        # La tabla la crea setup.py, no una migracion: personal tiene una FK
+        # contra cargo y seed.py inserta los cargos en el primer arranque,
+        # asi que tiene que existir antes que el seed.
+        # ---------------------------------------------------------------------
+
+        cursor.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS cargo (
+                cargo_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cargo TEXT NOT NULL UNIQUE
+                CHECK(length(cargo) <= 255),
+                nivel_permisos INTEGER NOT NULL
+            )
+            '''
+        )
+
+        # ---------------------------------------------------------------------
         # ALUMNOS
         # ---------------------------------------------------------------------
 

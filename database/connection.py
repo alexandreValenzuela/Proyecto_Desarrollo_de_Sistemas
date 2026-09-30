@@ -5,7 +5,13 @@ import sqlite3
 # desde el que se ejecute el programa.
 CARPETA_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CARPETA_DATABASE = os.path.join(CARPETA_BASE, "database")
-RUTA_BBDD = os.path.join(CARPETA_DATABASE, "app_abm.db")
+
+# La variable de entorno NEOED_DB_PATH permite apuntar la base a otro archivo
+# (lo usa la suite de tests para aislar las pruebas de los datos reales).
+RUTA_BBDD = os.environ.get(
+    "NEOED_DB_PATH",
+    os.path.join(CARPETA_DATABASE, "app_abm.db"),
+)
 
 
 class Conexion:
