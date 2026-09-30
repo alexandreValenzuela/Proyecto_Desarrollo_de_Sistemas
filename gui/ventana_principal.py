@@ -29,6 +29,9 @@ from gui.vistas.vista_registrar_personal import VistaRegistrarPersonal
 from gui.vistas.vista_notas import VistaNotas
 from gui.vistas.vista_ausencias import VistaAusencias
 from gui.vistas.vista_profesores import VistaProfesores
+from gui.vistas.vista_mis_notas import VistaMisNotas
+from gui.vistas.vista_mis_ausencias import VistaMisAusencias
+from gui.vistas.vista_mis_datos import VistaMisDatos
 
 # Indices de stack_vistas.
 VISTA_BIENVENIDO = 0
@@ -39,6 +42,9 @@ VISTA_REGISTRAR_PERSONAL = 4
 VISTA_PROFESORES = 5
 VISTA_NOTAS = 6
 VISTA_AUSENCIAS = 7
+VISTA_MIS_NOTAS = 8
+VISTA_MIS_AUSENCIAS = 9
+VISTA_MIS_DATOS = 10
 
 # Niveles minimos de las secciones restringidas.
 NIVEL_ALUMNOS = 3            # ver / cargar alumnos (alta institucional)
@@ -63,10 +69,18 @@ class VentanaPrincipal(QMainWindow):
         VISTA_AUSENCIAS: NIVEL_AUSENCIAS,
     }
 
+    # Vistas exclusivas del alumno (tipo=alumno): se abren solo con su DNI.
+    VISTAS_ALUMNO = frozenset({
+        VISTA_MIS_NOTAS,
+        VISTA_MIS_AUSENCIAS,
+        VISTA_MIS_DATOS,
+    })
+
     def __init__(self, usuario, on_logout_callback=None):
         super().__init__()
         self.usuario = usuario
         self.on_logout_callback = on_logout_callback
+        self.es_alumno = usuario.get("tipo") == "alumno"
 
         self.setWindowTitle("NeoED - Sistema de Gestion Escolar")
         self.resize(1600, 900)
@@ -189,6 +203,12 @@ class VentanaPrincipal(QMainWindow):
         self.vista_notas = VistaNotas(self.usuario, on_volver=al_menu)
         self.vista_ausencias = VistaAusencias(self.usuario, on_volver=al_menu)
 
+        # Vistas exclusivas del alumno: sin boton "Volver" (no hay menu para
+        # el alumno; navega por el sidebar y cierra sesion desde el dashboard).
+        self.vista_mis_notas = VistaMisNotas(self.usuario)
+        self.vista_mis_ausencias = VistaMisAusencias(self.usuario)
+        self.vista_mis_datos = VistaMisDatos(self.usuario)
+
         self.stack_vistas.addWidget(self.vista_bienvenido)             # 0
         self.stack_vistas.addWidget(self.vista_ver_alumnos)            # 1
         self.stack_vistas.addWidget(self.vista_cargar_alumnos)         # 2
@@ -197,6 +217,9 @@ class VentanaPrincipal(QMainWindow):
         self.stack_vistas.addWidget(self.vista_profesores)             # 5
         self.stack_vistas.addWidget(self.vista_notas)                  # 6
         self.stack_vistas.addWidget(self.vista_ausencias)              # 7
+        self.stack_vistas.addWidget(self.vista_mis_notas)              # 8
+        self.stack_vistas.addWidget(self.vista_mis_ausencias)          # 9
+        self.stack_vistas.addWidget(self.vista_mis_datos)              # 10
 
         self.stack_vistas.setCurrentIndex(VISTA_BIENVENIDO)
 
@@ -215,9 +238,28 @@ class VentanaPrincipal(QMainWindow):
         self.grupo_sidebar.setExclusive(True)
 
         # Header
-        lbl_logo = QLabel("NeoED Admin")
+        lbl_logo = QLabel("NeoED Alumno" if self.es_alumno else "NeoED Admin")
         lbl_logo.setObjectName("SidebarHeader")
         layout.addWidget(lbl_logo)
+
+        # Grupo Mi Cuenta (solo alumno)
+        self.lbl_grupo_mi_cuenta = self._label_grupo("MI CUENTA")
+        layout.addWidget(self.lbl_grupo_mi_cuenta)
+
+        self.btn_mis_notas = self._boton_sidebar("Mis Notas", VISTA_MIS_NOTAS)
+        layout.addWidget(self.btn_mis_notas)
+
+        self.btn_mis_ausencias = self._boton_sidebar(
+            "Mis Ausencias", VISTA_MIS_AUSENCIAS
+        )
+        layout.addWidget(self.btn_mis_ausencias)
+
+        self.btn_mis_datos = self._boton_sidebar("Mis Datos", VISTA_MIS_DATOS)
+        layout.addWidget(self.btn_mis_datos)
+
+        self.btn_mis_notas.setVisible(self.es_alumno)
+        self.btn_mis_ausencias.setVisible(self.es_alumno)
+        self.btn_mis_datos.setVisible(self.es_alumno)
 
         # Grupo Alumnos
         self.lbl_grupo_alumnos = self._label_grupo("ALUMNOS")
@@ -321,6 +363,9 @@ class VentanaPrincipal(QMainWindow):
         refleja la visibilidad explicita de cada boton.
         """
         grupos = {
+            self.lbl_grupo_mi_cuenta: [
+                self.btn_mis_notas, self.btn_mis_ausencias, self.btn_mis_datos
+            ],
             self.lbl_grupo_alumnos: [self.btn_ver, self.btn_cargar],
             self.lbl_grupo_personal: [self.btn_autorizar, self.btn_registrar],
             self.lbl_grupo_profesores: [self.btn_profes],
@@ -335,7 +380,15 @@ class VentanaPrincipal(QMainWindow):
 
     def _puede_abrir(self, index_vista):
         """Defensa en profundidad: oculta el boton, pero ninguna ruta de
-        navegacion abre una seccion restringida sin el nivel necesario."""
+        navegacion abre una seccion restringida sin el nivel necesario.
+
+        Las vistas "Mi Cuenta" son exclusivas del alumno: el staff no las
+        ve (sus datos no existen en notas/ausencias), y el alumno jamás
+        accede a las del staff.
+        """
+        if index_vista in self.VISTAS_ALUMNO:
+            return self.es_alumno
+
         nivel = self.NIVELES_POR_VISTA.get(index_vista)
 
         if nivel is None:
@@ -374,6 +427,12 @@ class VentanaPrincipal(QMainWindow):
             self.vista_ver_alumnos.cargar_datos()
         elif index_vista == VISTA_PROFESORES:
             self.vista_profesores.cargar_datos()
+        elif index_vista == VISTA_MIS_NOTAS:
+            self.vista_mis_notas.cargar_datos()
+        elif index_vista == VISTA_MIS_AUSENCIAS:
+            self.vista_mis_ausencias.cargar_datos()
+        elif index_vista == VISTA_MIS_DATOS:
+            self.vista_mis_datos.cargar_datos()
 
     def _refrescar_tabla_alumnos(self):
         self.vista_ver_alumnos.cargar_datos()

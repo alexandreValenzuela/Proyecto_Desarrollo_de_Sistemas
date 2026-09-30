@@ -216,8 +216,11 @@ Usá `tiene_permiso()` de `auth/permisos.py`. **Ocultar** los botones no permiti
 | Ver Profesores | 3 |
 | Notas | 5 |
 | Ausencias | 3 |
+| Mis Notas / Mis Ausencias / Mis Datos | solo `tipo=alumno` |
 
-> **Regla de negocio (2026-09-29):** un alumno (`tipo=alumno`, `nivel_permisos=0`) **no** accede a ninguna sección del dashboard: entra directo a la bienvenida con solo "Cerrar Sesión", y la navegación programática también está bloqueada (`NIVELES_POR_VISTA`).
+> **Regla de negocio (2026-09-29):** los roles de staff (`tipo=personal`) entran al Menú Centralizado y ven las secciones de gestión según su nivel; las secciones "Ver/Cargar Alumnos" y "Ver Profesores" dejaron de ser públicas (hoy se ocultan para un alumno).
+>
+> **Alumno (2026-09-29):** con `tipo=alumno` (nivel 0) ve SOLO la sección **Mi Cuenta**: «Mis Notas» (por materia), «Mis Ausencias» (con justificación) y «Mis Datos» (curso, estado, contacto). Las vistas filtran siempre por el DNI del usuario logueado (aislamiento de datos) y la defensa en profundidad (`VISTAS_ALUMNO`) impide abrirlas por código para staff, y al alumno abrir áreas de gestión. Entra directo a la bienvenida, sin "Volver al Menu".
 
 **Dos lugares, no uno:**
 - El **sidebar** (`gui/ventana_principal.py:150-193`)

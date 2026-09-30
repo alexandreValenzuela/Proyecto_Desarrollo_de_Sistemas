@@ -185,8 +185,10 @@ class Alumno:
                         direccion,
                         fecha_nacimiento,
                         telefono,
+                        password,
                         telefono_respaldo,
-                        curso_id
+                        curso_id,
+                        autorizado
                     FROM alumnos WHERE dni = ? """,(dni,)
                 )
 
