@@ -3,8 +3,9 @@ Vista "Mis Notas" (solo alumno): lectura de las propias notas por materia.
 Siempre filtra por el DNI del usuario logueado: un alumno nunca ve notas
 de otro alumno.
 """
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QTableWidget,
-                                QTableWidgetItem, QHeaderView)
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+                                QTableWidget, QTableWidgetItem, QHeaderView,
+                                QComboBox)
 from PySide6.QtCore import Qt
 
 from gui.componentes import alerta_error
@@ -39,6 +40,27 @@ class VistaMisNotas(QWidget):
         """)
         layout.addWidget(lbl_ayuda)
 
+        fila_filtro = QHBoxLayout()
+        fila_filtro.setAlignment(Qt.AlignCenter)
+        fila_filtro.setSpacing(15)
+
+        lbl_materia = QLabel("Materia")
+        lbl_materia.setStyleSheet("""
+            font-family: 'Cascadia Code', 'Consolas', monospace;
+            font-size: 18px;
+            color: #000000;
+            background: transparent;
+        """)
+        fila_filtro.addWidget(lbl_materia)
+
+        self.combo_materia = QComboBox()
+        self.combo_materia.setMinimumSize(280, 45)
+        self.combo_materia.setStyleSheet("font-size: 18px;")
+        self.combo_materia.currentIndexChanged.connect(self.cargar_datos)
+        fila_filtro.addWidget(self.combo_materia)
+
+        layout.addLayout(fila_filtro)
+
         self.lbl_error = QLabel("")
         self.lbl_error.setAlignment(Qt.AlignCenter)
         self.lbl_error.setStyleSheet(
@@ -69,6 +91,22 @@ class VistaMisNotas(QWidget):
             self.lbl_error.setText(str(e))
             alerta_error(self, "Error inesperado", str(e))
             return
+
+        # Combo de materias, sin perder la seleccion actual. Se reconstruye
+        # con signals bloqueadas para no re-disparar cargar_datos en loop.
+        seleccion = self.combo_materia.currentText()
+        self.combo_materia.blockSignals(True)
+        self.combo_materia.clear()
+        self.combo_materia.addItem("Todas las materias")
+        for materia in sorted({n.materia for n in notas}):
+            self.combo_materia.addItem(materia)
+        indice = self.combo_materia.findText(seleccion)
+        self.combo_materia.setCurrentIndex(indice if indice != -1 else 0)
+        self.combo_materia.blockSignals(False)
+
+        filtro = self.combo_materia.currentText().strip()
+        if filtro and filtro != "Todas las materias":
+            notas = [n for n in notas if n.materia == filtro]
 
         self.tabla.setRowCount(0)
         self.lbl_error.clear()

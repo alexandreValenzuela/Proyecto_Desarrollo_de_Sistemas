@@ -218,6 +218,28 @@ class Nota:
             raise RuntimeError(f"Error al obtener notas: {e}")
 
     @classmethod
+    def obtener_materias(cls):
+
+        """Lista las materias distintas que tienen notas cargadas."""
+
+        try:
+            with obtener_conexion() as conexion:
+                cursor = conexion.cursor()
+
+                cursor.execute(
+                    """
+                    SELECT DISTINCT materia
+                    FROM notas
+                    ORDER BY materia
+                    """
+                )
+
+                return [fila[0] for fila in cursor.fetchall()]
+
+        except sqlite3.Error as e:
+            raise RuntimeError(f"Error al obtener materias: {e}")
+
+    @classmethod
     def existe(cls, dni, materia):
 
         try:

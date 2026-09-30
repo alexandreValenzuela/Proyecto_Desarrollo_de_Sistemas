@@ -9,8 +9,8 @@ Nota.existe(dni, materia).
 import sqlite3
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                                QLineEdit, QPushButton, QTableWidget,
-                                QTableWidgetItem, QHeaderView)
+                                QLineEdit, QComboBox, QPushButton,
+                                QTableWidget, QTableWidgetItem, QHeaderView)
 from PySide6.QtCore import Qt
 
 from gui.componentes import alerta_error, alerta_exito
@@ -28,6 +28,7 @@ class VistaNotas(QWidget):
         self.usuario = usuario
         self.on_volver = on_volver
         self._construir_interfaz()
+        self._poblar_materias()
         self.cargar_datos()
 
     # ========================================================================
@@ -86,7 +87,7 @@ class VistaNotas(QWidget):
         layout.addLayout(btn_layout)
 
     def _fila_filtro(self):
-        """Filtro por DNI: vacio = todas las notas."""
+        """Filtro por DNI y materia: vacios = todas las notas."""
         fila = QHBoxLayout()
         fila.setAlignment(Qt.AlignCenter)
         fila.setSpacing(15)
@@ -99,6 +100,12 @@ class VistaNotas(QWidget):
         self.entrada_filtro.setMinimumSize(220, 45)
         self.entrada_filtro.setStyleSheet("font-size: 18px;")
         fila.addWidget(self.entrada_filtro)
+
+        fila.addWidget(self._label("Materia"))
+        self.combo_materia = QComboBox()
+        self.combo_materia.setMinimumSize(220, 45)
+        self.combo_materia.setStyleSheet("font-size: 18px;")
+        fila.addWidget(self.combo_materia)
 
         btn_filtrar = QPushButton("Filtrar")
         btn_filtrar.setObjectName("FilterButton")
@@ -113,7 +120,7 @@ class VistaNotas(QWidget):
         btn_refrescar.setMinimumSize(140, 45)
         btn_refrescar.setStyleSheet("font-size: 18px;")
         btn_refrescar.setCursor(Qt.PointingHandCursor)
-        btn_refrescar.clicked.connect(self.cargar_datos)
+        btn_refrescar.clicked.connect(self._refrescar)
         fila.addWidget(btn_refrescar)
 
         return fila
@@ -173,6 +180,30 @@ class VistaNotas(QWidget):
         """)
         return lbl
 
+    def _refrescar(self):
+        self._poblar_materias()
+        self.cargar_datos()
+
+    def _poblar_materias(self):
+        """Llena el combo con las materias existentes, sin perder la
+        seleccion actual si esa materia sigue estando."""
+        seleccion = self.combo_materia.currentText()
+        self.combo_materia.clear()
+        self.combo_materia.addItem("Todas las materias")
+
+        try:
+            for materia in Nota.obtener_materias():
+                self.combo_materia.addItem(materia)
+        except RuntimeError:
+            # Sin acceso a la base no hay materias para mostrar; la tabla
+            # igualmente va a fallar con su propio cartel.
+            pass
+
+        indice = self.combo_materia.findText(seleccion)
+        self.combo_materia.setCurrentIndex(
+            indice if indice != -1 else 0
+        )
+
     # ========================================================================
     # ACCESO
     # ========================================================================
@@ -206,9 +237,13 @@ class VistaNotas(QWidget):
             return
 
         dni = self.entrada_filtro.text().strip()
+        materia = self.combo_materia.currentText().strip()
 
         try:
             notas = Nota.obtener_por_alumno(dni) if dni else Nota.obtener_todas()
+
+            if materia and materia != "Todas las materias":
+                notas = [n for n in notas if n.materia == materia]
 
         except (ValueError, RuntimeError, sqlite3.Error) as e:
             self.lbl_error.setText(str(e))
