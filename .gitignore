@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 .venv/
 database/*.db
+database/*.db-journal
+database/*.db-wal
+database/*.db-shm
