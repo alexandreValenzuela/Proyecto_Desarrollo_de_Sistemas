@@ -205,16 +205,32 @@ Defensa en profundidad: agregá la validación de nivel también en `gui/vistas/
 
 ### Bloque D — Alertas modales (Escudo de Datos)
 
-**Corrección importante sobre el enunciado:** los formularios **NO crashean** por datos inválidos. `ValueError` ya está capturado; si escribís letras en el DNI, `Alumno.__init__` hace `int(dni)`, lanza `ValueError` y la vista la captura. Lo que falta es la **alerta gráfica**: hoy el error se escribe en un `lbl_error` rojo chico, sin diálogo ni foco.
+**Estado actual, verificado form por form:** los 5 formularios tienen `try/except` y **no crashean** con datos inválidos. Lo que falta es el **cartel gráfico**: hoy el error se escribe en un `lbl_error` rojo chico, sin diálogo. `alerta_error()` de `gui/componentes.py` **no la llama ningún formulario** — el `QMessageBox` solo aparece en el camino de éxito.
 
-Lo que SÍ crashea: los `except` solo cazan `(ValueError, RuntimeError)`. Un `sqlite3.OperationalError` (base bloqueada, `no such table`) no está en ninguna tupla y **mata la app**.
+| Formulario | try/except | `alerta_error` en error | No crashea |
+| :--- | :---: | :---: | :---: |
+| `gui/ventana_login.py:91` | sí | **no** | sí |
+| `gui/vistas/vista_cargar_alumnos.py:145` | sí | **no** | sí |
+| `gui/vistas/vista_registrar_personal.py:158` | sí | **no** | sí |
+| `gui/vistas/vista_autorizar_alumnos.py:76` | sí | **no** | sí |
+| `gui/ventana_registro.py:138` | sí | **no** | sí |
 
-Qué hacer:
+**Por qué no crashea (corrige una versión anterior de este documento):** yo te dije que un `sqlite3.OperationalError` mataba la app por no estar en las tuplas `except`. **Eso es falso.** Todos los modelos envuelven `sqlite3.Error` en `RuntimeError` (`models/alumno.py:165`, `models/personal.py:167`, `models/curso.py:68`), y los formularios sí cazan `RuntimeError`. El error de base de datos no puede escapar por los modelos.
+
+Y los datos inválidos tampoco: si escribís letras en el DNI, `int(dni)` en `models/alumno.py:26` y `models/personal.py:19` lanza `ValueError`, que está en todas las tuplas.
+
+**El riesgo real que sí queda:** no hay `except Exception` en ningún handler. Cualquier error inesperado — `IndexError`, `AttributeError`, `KeyError` — cierra la app. Dos casos concretos:
+- `gui/ventana_registro.py:140` usa `entradas[0]` y `entradas[1]` a ciegas (el bug de campos cruzados). Si el índice no existe, `IndexError` sin red.
+- `database/connection.py:66` llama a `os.makedirs()`, que lanza `OSError` — y los modelos solo cazan `sqlite3.Error`.
+
+**Qué hacer:**
 1. Reemplazá los `lbl_error.setText()` por `alerta_error(...)`, **conservando el label inline** como refuerzo. Un usuario escribiendo 8 campos no debería perder el foco a un modal por cada tecla.
-2. Ampliá las tuplas a incluir `sqlite3.Error`.
-3. Agregá un `except Exception` envolviendo `_intentar_registro` completo en cada vista. Es la red que garantiza el "NO PUEDE cerrarse".
+2. Agregá un `except Exception` envolviendo el handler completo en cada vista. **Es lo que realmente garantiza el "NO PUEDE cerrarse"** — el `sqlite3.Error` de la tupla es opcional, los modelos ya lo envuelven.
+3. Reemplazá los `QMessageBox.information` sueltos por `alerta_exito()`, así queda un solo lugar donde vive el cartel.
 
 Los 5 formularios: `vista_cargar_alumnos`, `vista_registrar_personal`, `vista_autorizar_alumnos`, `ventana_registro`, `ventana_login`.
+
+> **La consola queda fuera de este requisito.** `cli/consola.py` no puede abrir un `QMessageBox`: es un requisito gráfico. Lo que sí tiene que hacer es no caerse, y hoy `except (ValueError, RuntimeError)` alcanza para los `int(input(...))` de `cli/consola.py:93-109`.
 
 ---
 
@@ -222,7 +238,7 @@ Los 5 formularios: `vista_cargar_alumnos`, `vista_registrar_personal`, `vista_au
 
 | Tema | Riesgo actual |
 | :--- | :--- |
-| ~~Hashing de contraseñas~~ | **RESUELTO** en `feat/seguridad`. Ver §3.3. |
+| ~~Hashing de contraseñas~~ | **RESUELTO** en `feat/seguridad`. Ver §3.5. |
 | Refactor a ventana única | `main.py` mantiene un dict de ventanas top-level y las muestra con `.show()`. Contradice la spec §1.2, que dice explícitamente que ese patrón falló. |
 | Doble fila en `accesos` | `auth/autenticacion.py:19-25`: si `Personal.login` falla ya escribió un acceso fallido, y después `Alumno.login` escribe el exitoso. Cada login de alumno deja **2 filas**. |
 | `notas` | **RESUELTO**: modelo en `models/nota.py`. Ver §3.3. La vista sigue siendo tuya. |
@@ -294,6 +310,21 @@ Antes de dar por terminada tu rama:
 - [ ] Un usuario del seed puede loguearse con su contraseña original (`11111111` / `1234`)
 - [ ] Un preceptor (3) **no** ve "Registrar Personal"
 - [ ] Un alumno (0) no ve "Autorizar Alumnos" ni "Registrar Personal"
-- [ ] Campo obligatorio vacío → cartel, no crashea
-- [ ] Letras en un campo numérico → cartel, no crashea
+- [ ] Campo obligatorio vacío → **cartel gráfico**, no crashea
+- [ ] Letras en un campo numérico → **cartel gráfico**, no crashea
+- [ ] Los 5 formularios usan `alerta_error(...)` de `gui/componentes.py`
+- [ ] Ningún handler queda con `except` que no incluya `Exception`
 - [ ] Ningún `except` queda en `(ValueError, RuntimeError)` solamente
+
+### 9.1 Cómo se verifica esto sin pantalla
+
+PySide6 corre en modo offscreen, así que se puede probar sin display y sin clickear a mano:
+
+```python
+import os
+os.environ["QT_QPA_PLATFORM"] = "offscreen"
+```
+
+Con eso se instancian los widgets, se llenan los campos con datos inválidos y se dispara el botón con `.click()`. Si el `QMessageBox` aparece y el proceso sigue vivo, el Escudo está. **Un `QMessageBox` modal bloquea, así que hay que cerrarlo o usar un timer** para que el test no se cuelgue.
+
+Esto es lo que va a usar el emisor para revisar tu rama. Si podés, dejá un script así y te lo reviso más rápido.
