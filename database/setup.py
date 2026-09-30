@@ -128,14 +128,20 @@ def inicio():
 
                 nota_id INTEGER PRIMARY KEY AUTOINCREMENT,
 
+                dni INTEGER NOT NULL,
+
                 nota INTEGER NOT NULL
                 CHECK(nota BETWEEN 1 AND 10),
 
                 materia TEXT NOT NULL
                 CHECK(length(materia) <= 255),
 
-                comentario TEXT NOT NULL
-                CHECK(length(comentario) <= 255)
+                comentario TEXT,
+
+                FOREIGN KEY(dni)
+                REFERENCES alumnos(dni),
+
+                UNIQUE(dni, materia)
             )
             '''
         )
