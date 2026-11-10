@@ -12,7 +12,8 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                 QLineEdit, QPushButton)
 from PySide6.QtCore import Qt
 
-from gui.componentes import alerta_error, alerta_exito, adjuntar_vista_previa_dni
+from gui.componentes import (alerta_error, alerta_exito, adjuntar_vista_previa_dni,
+                              SectionTitle, PrimaryButton, SecondaryButton)
 from models.personal import Personal
 from models.alumno import Alumno
 from auth.permisos import tiene_permiso
@@ -36,9 +37,7 @@ class VistaCambiarPassword(QWidget):
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(16)
 
-        lbl = QLabel("Cambiar Contraseña")
-        lbl.setObjectName("SectionTitle")
-        lbl.setStyleSheet("font-size: 40px;")
+        lbl = SectionTitle("Cambiar Contraseña", 40)
         layout.addWidget(lbl)
 
         # Cambio propio
@@ -49,12 +48,8 @@ class VistaCambiarPassword(QWidget):
             self._fila_formulario("Repetir contraseña nueva", "confirmar")
         )
 
-        self.btn_cambiar = QPushButton("Cambiar mi contraseña")
-        self.btn_cambiar.setObjectName("PrimaryButton")
+        self.btn_cambiar = PrimaryButton("Cambiar mi contraseña", self._cambiar_mi_password, 18)
         self.btn_cambiar.setMinimumSize(280, 50)
-        self.btn_cambiar.setStyleSheet("font-size: 18px;")
-        self.btn_cambiar.setCursor(Qt.PointingHandCursor)
-        self.btn_cambiar.clicked.connect(self._cambiar_mi_password)
         layout.addWidget(self.btn_cambiar, alignment=Qt.AlignCenter)
 
         # Reseteo por administrador
@@ -93,12 +88,8 @@ class VistaCambiarPassword(QWidget):
             self._fila_formulario("Repetir contraseña nueva", "confirmar_reset")
         )
 
-        self.btn_resetear = QPushButton("Resetear contraseña")
-        self.btn_resetear.setObjectName("SecondaryButton")
+        self.btn_resetear = SecondaryButton("Resetear contraseña", self._resetear_password, 18)
         self.btn_resetear.setMinimumSize(280, 50)
-        self.btn_resetear.setStyleSheet("font-size: 18px;")
-        self.btn_resetear.setCursor(Qt.PointingHandCursor)
-        self.btn_resetear.clicked.connect(self._resetear_password)
         layout_admin.addWidget(self.btn_resetear, alignment=Qt.AlignCenter)
 
         layout.addWidget(self.panel_admin)

@@ -12,7 +12,9 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                 QTableWidget, QTableWidgetItem, QHeaderView)
 from PySide6.QtCore import Qt
 
-from gui.componentes import alerta_error, alerta_exito
+from gui.componentes import (alerta_error, alerta_exito, SectionTitle,
+                              PrimaryButton, SecondaryButton, FilterButton,
+                              DestructiveButton)
 from models.materia import Materia, nivel_de_curso, especialidad_de_curso, ESPECIALIDADES
 from models.curso import Curso
 from auth.permisos import tiene_permiso
@@ -42,9 +44,7 @@ class VistaMaterias(QWidget):
         layout.setSpacing(14)
 
         # Titulo
-        lbl = QLabel("Crear / Ver Materias")
-        lbl.setObjectName("SectionTitle")
-        lbl.setStyleSheet("font-size: 40px;")
+        lbl = SectionTitle("Crear / Ver Materias", 40)
         layout.addWidget(lbl)
 
         # Error
@@ -93,28 +93,18 @@ class VistaMaterias(QWidget):
         self.combo_curso.setStyleSheet("font-size: 18px;")
         form.addWidget(self.combo_curso)
 
-        btn_agregar = QPushButton("Agregar materia")
-        btn_agregar.setObjectName("PrimaryButton")
+        btn_agregar = PrimaryButton("Agregar materia", self._agregar, 18)
         btn_agregar.setMinimumSize(180, 45)
-        btn_agregar.setStyleSheet("font-size: 18px;")
-        btn_agregar.setCursor(Qt.PointingHandCursor)
-        btn_agregar.clicked.connect(self._agregar)
         form.addWidget(btn_agregar)
 
         layout.addLayout(form)
 
         # Botones de navegacion.
         btn_layout = QHBoxLayout()
-        btn_layout.setAlignment(Qt.AlignCenter)
-        btn_layout.setSpacing(30)
+        btn_layout.addStretch()
 
-        btn_volver = QPushButton("Volver")
-        btn_volver.setObjectName("DestructiveButton")
-        btn_volver.setMinimumSize(250, 60)
-        btn_volver.setStyleSheet("font-size: 25px;")
-        btn_volver.setCursor(Qt.PointingHandCursor)
-        if self.on_volver:
-            btn_volver.clicked.connect(self.on_volver)
+        btn_volver = DestructiveButton("Volver", self.on_volver, 25)
+        btn_volver.setMinimumSize(220, 55)
         btn_layout.addWidget(btn_volver)
 
         layout.addLayout(btn_layout)
@@ -153,20 +143,12 @@ class VistaMaterias(QWidget):
         self.combo_especialidad.setStyleSheet("font-size: 18px;")
         fila.addWidget(self.combo_especialidad)
 
-        btn_filtrar = QPushButton("Filtrar")
-        btn_filtrar.setObjectName("FilterButton")
+        btn_filtrar = FilterButton("Filtrar", self.cargar_datos, 18)
         btn_filtrar.setMinimumSize(140, 45)
-        btn_filtrar.setStyleSheet("font-size: 18px;")
-        btn_filtrar.setCursor(Qt.PointingHandCursor)
-        btn_filtrar.clicked.connect(self.cargar_datos)
         fila.addWidget(btn_filtrar)
 
-        btn_refrescar = QPushButton("Refrescar")
-        btn_refrescar.setObjectName("SecondaryButton")
+        btn_refrescar = SecondaryButton("Refrescar", self._refrescar, 18)
         btn_refrescar.setMinimumSize(140, 45)
-        btn_refrescar.setStyleSheet("font-size: 18px;")
-        btn_refrescar.setCursor(Qt.PointingHandCursor)
-        btn_refrescar.clicked.connect(self._refrescar)
         fila.addWidget(btn_refrescar)
 
         return fila

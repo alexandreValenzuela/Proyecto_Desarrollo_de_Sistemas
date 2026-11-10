@@ -11,7 +11,8 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                 QPushButton)
 from PySide6.QtCore import Qt
 
-from gui.componentes import alerta_error, alerta_exito
+from gui.componentes import (alerta_error, alerta_exito, SectionTitle,
+                              DestructiveButton)
 from models.alumno import Alumno
 from auth.permisos import PermisoDenegadoError, tiene_permiso
 
@@ -33,9 +34,7 @@ class VistaAutorizarAlumnos(QWidget):
         layout.setSpacing(16)
 
         # Titulo
-        lbl = QLabel("Autorizacion de Alumnos")
-        lbl.setObjectName("SectionTitle")
-        lbl.setStyleSheet("font-size: 30px;")
+        lbl = SectionTitle("Autorizacion de Alumnos", 40)
         layout.addWidget(lbl)
 
         # Error
@@ -63,16 +62,10 @@ class VistaAutorizarAlumnos(QWidget):
 
         # Botones
         btn_layout = QHBoxLayout()
-        btn_layout.setAlignment(Qt.AlignCenter)
-        btn_layout.setSpacing(30)
+        btn_layout.addStretch()
 
-        btn_volver = QPushButton("Volver")
-        btn_volver.setObjectName("DestructiveButton")
-        btn_volver.setMinimumSize(250, 60)
-        btn_volver.setStyleSheet("font-size: 25px;")
-        btn_volver.setCursor(Qt.PointingHandCursor)
-        if self.on_volver:
-            btn_volver.clicked.connect(self.on_volver)
+        btn_volver = DestructiveButton("Volver", self.on_volver, 25)
+        btn_volver.setMinimumSize(220, 55)
         btn_layout.addWidget(btn_volver)
 
         layout.addLayout(btn_layout)

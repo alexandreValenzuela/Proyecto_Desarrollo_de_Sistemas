@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                 QComboBox)
 from PySide6.QtCore import Qt
 
-from gui.componentes import alerta_error
+from gui.componentes import alerta_error, SectionTitle
 from models.nota import Nota
 
 
@@ -25,9 +25,7 @@ class VistaMisNotas(QWidget):
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(15)
 
-        lbl = QLabel("Mis Notas")
-        lbl.setObjectName("SectionTitle")
-        lbl.setStyleSheet("font-size: 40px;")
+        lbl = SectionTitle("Mis Notas", 40)
         layout.addWidget(lbl)
 
         lbl_ayuda = QLabel("Calificaciones por materia.")

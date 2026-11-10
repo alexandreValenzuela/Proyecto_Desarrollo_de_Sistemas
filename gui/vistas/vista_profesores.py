@@ -9,7 +9,8 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                 QHeaderView, QPushButton, QInputDialog)
 from PySide6.QtCore import Qt
 
-from gui.componentes import alerta_error, alerta_exito
+from gui.componentes import (alerta_error, alerta_exito, SectionTitle,
+                              FilterButton, DestructiveButton)
 from models.personal import Personal
 from models.cargo import Cargo
 from auth.permisos import PermisoDenegadoError, tiene_permiso
@@ -32,9 +33,7 @@ class VistaProfesores(QWidget):
         layout.setSpacing(15)
 
         # Titulo
-        lbl = QLabel("Listado de Profesores")
-        lbl.setObjectName("SectionTitle")
-        lbl.setStyleSheet("font-size: 50px;")
+        lbl = SectionTitle("Listado de Profesores", 40)
         layout.addWidget(lbl)
 
         # Barra de busqueda
@@ -65,25 +64,15 @@ class VistaProfesores(QWidget):
 
         # Botones
         btn_layout = QHBoxLayout()
-        btn_layout.setAlignment(Qt.AlignCenter)
-        btn_layout.setSpacing(30)
+        btn_layout.addStretch()
 
-        btn_cambiar = QPushButton("Cambiar Cargo")
-        btn_cambiar.setObjectName("FilterButton")
-        btn_cambiar.setMinimumSize(220, 60)
-        btn_cambiar.setStyleSheet("font-size: 22px;")
-        btn_cambiar.setCursor(Qt.PointingHandCursor)
-        btn_cambiar.clicked.connect(self.cambiar_cargo)
+        btn_cambiar = FilterButton("Cambiar Cargo", self.cambiar_cargo, 22)
+        btn_cambiar.setMinimumSize(220, 55)
         btn_cambiar.setVisible(self._tiene_acceso())
         btn_layout.addWidget(btn_cambiar)
 
-        btn_volver = QPushButton("Volver")
-        btn_volver.setObjectName("DestructiveButton")
-        btn_volver.setMinimumSize(220, 60)
-        btn_volver.setStyleSheet("font-size: 25px;")
-        btn_volver.setCursor(Qt.PointingHandCursor)
-        if self.on_volver:
-            btn_volver.clicked.connect(self.on_volver)
+        btn_volver = DestructiveButton("Volver", self.on_volver, 25)
+        btn_volver.setMinimumSize(220, 55)
         btn_layout.addWidget(btn_volver)
 
         layout.addLayout(btn_layout)
@@ -149,14 +138,14 @@ class VistaProfesores(QWidget):
             alerta_error(self, "Error", "El DNI debe contener solamente números.")
             return
 
-        nombre, nuevo_nombre, ok2 = QInputDialog.getItem(
+        nuevo_nombre, ok2 = QInputDialog.getItem(
             self, "Cambiar cargo", f"Nuevo cargo para DNI {dni}:",
             nombres, 0, False
         )
-        if not ok2 or not nombre:
+        if not ok2 or not nuevo_nombre:
             return
 
-        cargo_id = next(c.cargo_id for c in cargos if c.cargo == nombre)
+        cargo_id = next(c.cargo_id for c in cargos if c.cargo == nuevo_nombre)
 
         try:
             Personal.asignar_cargo(self.usuario, dni, cargo_id)
@@ -170,5 +159,5 @@ class VistaProfesores(QWidget):
             alerta_error(self, "Error inesperado", str(e))
             return
 
-        alerta_exito(self, "Exito", f"Cargo de DNI {dni} actualizado a {nombre}.")
+        alerta_exito(self, "Exito", f"Cargo de DNI {dni} actualizado a {nuevo_nombre}.")
         self.cargar_datos()

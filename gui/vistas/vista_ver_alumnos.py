@@ -12,7 +12,8 @@ from PySide6.QtCore import Qt
 
 from models.alumno import Alumno
 from models.curso import Curso
-from gui.componentes import alerta_error, alerta_exito
+from gui.componentes import (alerta_error, alerta_exito, SectionTitle,
+                              FilterButton, DestructiveButton)
 
 
 class ModalEditarAlumno(QDialog):
@@ -214,9 +215,7 @@ class VistaVerAlumnos(QWidget):
         layout.setSpacing(15)
 
         # Titulo
-        lbl = QLabel("Listado de Alumnos")
-        lbl.setObjectName("SectionTitle")
-        lbl.setStyleSheet("font-size: 50px;")
+        lbl = SectionTitle("Listado de Alumnos", 40)
         layout.addWidget(lbl)
 
         # Barra de busqueda y filtros
@@ -236,19 +235,11 @@ class VistaVerAlumnos(QWidget):
         self._poblar_combo_cursos()
         self.cmb_cursos.currentIndexChanged.connect(self.cargar_datos)
 
-        btn_filtrar = QPushButton("Filtrar")
-        btn_filtrar.setObjectName("FilterButton")
+        btn_filtrar = FilterButton("Filtrar", self.cargar_datos, 20)
         btn_filtrar.setMinimumSize(140, 45)
-        btn_filtrar.setStyleSheet("font-size: 20px;")
-        btn_filtrar.setCursor(Qt.PointingHandCursor)
-        btn_filtrar.clicked.connect(self.cargar_datos)
 
-        btn_limpiar = QPushButton("Limpiar")
-        btn_limpiar.setObjectName("DestructiveButton")
+        btn_limpiar = DestructiveButton("Limpiar", self._limpiar_filtros, 18)
         btn_limpiar.setMinimumSize(140, 45)
-        btn_limpiar.setStyleSheet("font-size: 18px;")
-        btn_limpiar.setCursor(Qt.PointingHandCursor)
-        btn_limpiar.clicked.connect(self._limpiar_filtros)
 
         layout_filtros.addWidget(self.txt_buscar)
         layout_filtros.addWidget(self.cmb_cursos)
@@ -270,13 +261,9 @@ class VistaVerAlumnos(QWidget):
 
         # Boton volver
         layout_volver = QHBoxLayout()
-        layout_volver.setAlignment(Qt.AlignRight)
-        btn_volver = QPushButton("Volver")
-        btn_volver.setObjectName("DestructiveButton")
-        btn_volver.setFixedSize(180, 55)
-        btn_volver.setStyleSheet("font-size: 25px;")
-        btn_volver.setCursor(Qt.PointingHandCursor)
-        btn_volver.clicked.connect(self._volver_al_menu)
+        layout_volver.addStretch()
+        btn_volver = DestructiveButton("Volver", self._volver_al_menu, 25)
+        btn_volver.setMinimumSize(220, 55)
         layout_volver.addWidget(btn_volver)
         layout.addLayout(layout_volver)
 

@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QTableWidget,
                                 QTableWidgetItem, QHeaderView)
 from PySide6.QtCore import Qt
 
-from gui.componentes import alerta_error
+from gui.componentes import alerta_error, SectionTitle
 from models.ausencia import Ausencia
 
 
@@ -23,9 +23,7 @@ class VistaMisAusencias(QWidget):
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(15)
 
-        lbl = QLabel("Mis Ausencias")
-        lbl.setObjectName("SectionTitle")
-        lbl.setStyleSheet("font-size: 40px;")
+        lbl = SectionTitle("Mis Ausencias", 40)
         layout.addWidget(lbl)
 
         lbl_ayuda = QLabel("Tus inasistencias, con su estado de justificación.")

@@ -295,9 +295,9 @@ class VentanaPrincipal(QMainWindow):
         self.btn_mis_ausencias.setVisible(self.es_alumno)
         self.btn_mis_datos.setVisible(self.es_alumno)
 
-        # Grupo Alumnos
-        self.lbl_grupo_alumnos = self._label_grupo("ALUMNOS")
-        layout.addWidget(self.lbl_grupo_alumnos)
+        # Grupo Preceptor (Nivel 3)
+        self.lbl_grupo_preceptor = self._label_grupo("PRECEPTOR")
+        layout.addWidget(self.lbl_grupo_preceptor)
 
         self.btn_ver = self._boton_sidebar("Ver Alumnos", VISTA_VER_ALUMNOS)
         layout.addWidget(self.btn_ver)
@@ -305,73 +305,65 @@ class VentanaPrincipal(QMainWindow):
         self.btn_cargar = self._boton_sidebar("Cargar Alumnos", VISTA_CARGAR_ALUMNOS)
         layout.addWidget(self.btn_cargar)
 
-        # Grupo Personal
-        self.lbl_grupo_personal = self._label_grupo("PERSONAL")
-        layout.addWidget(self.lbl_grupo_personal)
-
         self.btn_autorizar = self._boton_sidebar("Autorizar Alumnos", VISTA_AUTORIZAR)
         layout.addWidget(self.btn_autorizar)
-
-        self.btn_registrar = self._boton_sidebar(
-            "Registrar Personal", VISTA_REGISTRAR_PERSONAL
-        )
-        layout.addWidget(self.btn_registrar)
-
-        # Secciones restringidas: ocultas, nunca deshabilitadas.
-        self.btn_ver.setVisible(tiene_permiso(self.usuario, NIVEL_ALUMNOS))
-        self.btn_cargar.setVisible(tiene_permiso(self.usuario, NIVEL_ALUMNOS))
-        self.btn_autorizar.setVisible(
-            tiene_permiso(self.usuario, NIVEL_AUTORIZAR)
-        )
-        self.btn_registrar.setVisible(
-            tiene_permiso(self.usuario, NIVEL_REGISTRAR_PERSONAL)
-        )
-
-        # Grupo Profesores
-        self.lbl_grupo_profesores = self._label_grupo("PROFESORES")
-        layout.addWidget(self.lbl_grupo_profesores)
-
-        self.btn_profes = self._boton_sidebar("Ver Profesores", VISTA_PROFESORES)
-        layout.addWidget(self.btn_profes)
-        self.btn_profes.setVisible(tiene_permiso(self.usuario, NIVEL_PROFESORES))
-
-        # Grupo Notas
-        self.lbl_grupo_notas = self._label_grupo("NOTAS Y INFORMES")
-        layout.addWidget(self.lbl_grupo_notas)
-
-        self.btn_notas = self._boton_sidebar("Cargar / Ver Notas", VISTA_NOTAS)
-        layout.addWidget(self.btn_notas)
 
         self.btn_ausencias = self._boton_sidebar(
             "Cargar / Ver Ausencias", VISTA_AUSENCIAS
         )
         layout.addWidget(self.btn_ausencias)
 
-        self.btn_accesos = self._boton_sidebar(
-            "Historial de Accesos", VISTA_ACCESOS
-        )
-        layout.addWidget(self.btn_accesos)
-
-        # Secciones restringidas: ocultas, nunca deshabilitadas.
-        self.btn_notas.setVisible(tiene_permiso(self.usuario, NIVEL_NOTAS))
-        self.btn_ausencias.setVisible(
-            tiene_permiso(self.usuario, NIVEL_AUSENCIAS)
-        )
-        self.btn_accesos.setVisible(
-            tiene_permiso(self.usuario, NIVEL_ACCESOS)
-        )
-
-        # Grupo Materias
-        self.lbl_grupo_materias = self._label_grupo("MATERIAS")
-        layout.addWidget(self.lbl_grupo_materias)
-
         self.btn_materias = self._boton_sidebar(
             "Crear / Ver Materias", VISTA_MATERIAS
         )
         layout.addWidget(self.btn_materias)
 
+        self.btn_profes = self._boton_sidebar("Ver Profesores", VISTA_PROFESORES)
+        layout.addWidget(self.btn_profes)
+
+        # Visibilidad segun permisos de Preceptor
+        self.btn_ver.setVisible(tiene_permiso(self.usuario, NIVEL_ALUMNOS))
+        self.btn_cargar.setVisible(tiene_permiso(self.usuario, NIVEL_ALUMNOS))
+        self.btn_autorizar.setVisible(
+            tiene_permiso(self.usuario, NIVEL_AUTORIZAR)
+        )
+        self.btn_ausencias.setVisible(
+            tiene_permiso(self.usuario, NIVEL_AUSENCIAS)
+        )
         self.btn_materias.setVisible(
             tiene_permiso(self.usuario, NIVEL_MATERIAS)
+        )
+        self.btn_profes.setVisible(tiene_permiso(self.usuario, NIVEL_PROFESORES))
+
+        # Grupo Profesor (Nivel 5)
+        self.lbl_grupo_profesor = self._label_grupo("PROFESOR")
+        layout.addWidget(self.lbl_grupo_profesor)
+
+        self.btn_notas = self._boton_sidebar("Cargar / Ver Notas", VISTA_NOTAS)
+        layout.addWidget(self.btn_notas)
+
+        self.btn_accesos = self._boton_sidebar(
+            "Historial de Accesos", VISTA_ACCESOS
+        )
+        layout.addWidget(self.btn_accesos)
+
+        # Visibilidad segun permisos de Profesor
+        self.btn_notas.setVisible(tiene_permiso(self.usuario, NIVEL_NOTAS))
+        self.btn_accesos.setVisible(
+            tiene_permiso(self.usuario, NIVEL_ACCESOS)
+        )
+
+        # Grupo Administrador (Nivel 10)
+        self.lbl_grupo_administrador = self._label_grupo("ADMINISTRADOR")
+        layout.addWidget(self.lbl_grupo_administrador)
+
+        self.btn_registrar = self._boton_sidebar(
+            "Registrar Personal", VISTA_REGISTRAR_PERSONAL
+        )
+        layout.addWidget(self.btn_registrar)
+
+        self.btn_registrar.setVisible(
+            tiene_permiso(self.usuario, NIVEL_REGISTRAR_PERSONAL)
         )
 
         # Un grupo sin botones visibles no muestra su rotulo.
@@ -422,13 +414,16 @@ class VentanaPrincipal(QMainWindow):
                 self.btn_mis_notas, self.btn_mis_ausencias,
                 self.btn_mis_datos, self.btn_cambiar_password
             ],
-            self.lbl_grupo_alumnos: [self.btn_ver, self.btn_cargar],
-            self.lbl_grupo_personal: [self.btn_autorizar, self.btn_registrar],
-            self.lbl_grupo_profesores: [self.btn_profes],
-            self.lbl_grupo_notas: [
-                self.btn_notas, self.btn_ausencias, self.btn_accesos
+            self.lbl_grupo_preceptor: [
+                self.btn_ver, self.btn_cargar, self.btn_autorizar,
+                self.btn_ausencias, self.btn_materias, self.btn_profes
             ],
-            self.lbl_grupo_materias: [self.btn_materias],
+            self.lbl_grupo_profesor: [
+                self.btn_notas, self.btn_accesos
+            ],
+            self.lbl_grupo_administrador: [
+                self.btn_registrar
+            ],
         }
         for label, botones in grupos.items():
             label.setVisible(any(not b.isHidden() for b in botones))

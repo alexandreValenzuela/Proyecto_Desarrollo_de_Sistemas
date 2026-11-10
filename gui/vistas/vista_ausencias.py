@@ -20,7 +20,9 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                 QTabWidget)
 from PySide6.QtCore import Qt
 
-from gui.componentes import alerta_error, alerta_exito, adjuntar_vista_previa_dni
+from gui.componentes import (alerta_error, alerta_exito, adjuntar_vista_previa_dni,
+                              SectionTitle, DestructiveButton, PrimaryButton,
+                              SecondaryButton, FilterButton)
 from models.ausencia import Ausencia
 from models.alumno import Alumno
 from auth.permisos import tiene_permiso
@@ -50,9 +52,7 @@ class VistaAusencias(QWidget):
         layout.setSpacing(14)
 
         # Titulo
-        lbl = QLabel("Cargar / Ver Ausencias")
-        lbl.setObjectName("SectionTitle")
-        lbl.setStyleSheet("font-size: 40px;")
+        lbl = SectionTitle("Cargar / Ver Ausencias", 40)
         layout.addWidget(lbl)
 
         # Pestañas (estilo Chrome: clic en una, cambia la pantalla principal).
@@ -81,14 +81,14 @@ class VistaAusencias(QWidget):
         layout.addWidget(self.lbl_error)
 
         # Boton volver.
-        btn_volver = QPushButton("Volver")
-        btn_volver.setObjectName("DestructiveButton")
-        btn_volver.setMinimumSize(250, 60)
-        btn_volver.setStyleSheet("font-size: 25px;")
-        btn_volver.setCursor(Qt.PointingHandCursor)
-        if self.on_volver:
-            btn_volver.clicked.connect(self.on_volver)
-        layout.addWidget(btn_volver, alignment=Qt.AlignCenter)
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+
+        btn_volver = DestructiveButton("Volver", self.on_volver, 25)
+        btn_volver.setMinimumSize(220, 55)
+        btn_layout.addWidget(btn_volver)
+
+        layout.addLayout(btn_layout)
 
     # ========================================================================
     # REFRESCO
@@ -140,9 +140,7 @@ class PaginaAusenciasRecientes(QWidget):
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(12)
 
-        lbl = QLabel("Ausencias recientes")
-        lbl.setObjectName("SectionTitle")
-        lbl.setStyleSheet("font-size: 28px;")
+        lbl = SectionTitle("Ausencias recientes", 28)
         layout.addWidget(lbl)
 
         # Filtro por DNI + vista previa.
@@ -186,20 +184,12 @@ class PaginaAusenciasRecientes(QWidget):
         self.entrada_filtro.setStyleSheet("font-size: 18px;")
         fila.addWidget(self.entrada_filtro)
 
-        btn_filtrar = QPushButton("Filtrar")
-        btn_filtrar.setObjectName("FilterButton")
+        btn_filtrar = FilterButton("Filtrar", self.cargar_datos, 18)
         btn_filtrar.setMinimumSize(140, 45)
-        btn_filtrar.setStyleSheet("font-size: 18px;")
-        btn_filtrar.setCursor(Qt.PointingHandCursor)
-        btn_filtrar.clicked.connect(self.cargar_datos)
         fila.addWidget(btn_filtrar)
 
-        btn_refrescar = QPushButton("Refrescar")
-        btn_refrescar.setObjectName("SecondaryButton")
+        btn_refrescar = SecondaryButton("Refrescar", self.cargar_datos, 18)
         btn_refrescar.setMinimumSize(140, 45)
-        btn_refrescar.setStyleSheet("font-size: 18px;")
-        btn_refrescar.setCursor(Qt.PointingHandCursor)
-        btn_refrescar.clicked.connect(self.cargar_datos)
         fila.addWidget(btn_refrescar)
 
         return fila
@@ -354,9 +344,7 @@ class PaginaAusenciasPorAlumno(QWidget):
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(12)
 
-        lbl = QLabel("Ausencias por alumno")
-        lbl.setObjectName("SectionTitle")
-        lbl.setStyleSheet("font-size: 28px;")
+        lbl = SectionTitle("Ausencias por alumno", 28)
         layout.addWidget(lbl)
 
         # Filtro por DNI + vista previa.
@@ -411,20 +399,12 @@ class PaginaAusenciasPorAlumno(QWidget):
         self.entrada_filtro.setStyleSheet("font-size: 18px;")
         fila.addWidget(self.entrada_filtro)
 
-        btn_filtrar = QPushButton("Filtrar")
-        btn_filtrar.setObjectName("FilterButton")
+        btn_filtrar = FilterButton("Filtrar", self.cargar_datos, 18)
         btn_filtrar.setMinimumSize(140, 45)
-        btn_filtrar.setStyleSheet("font-size: 18px;")
-        btn_filtrar.setCursor(Qt.PointingHandCursor)
-        btn_filtrar.clicked.connect(self.cargar_datos)
         fila.addWidget(btn_filtrar)
 
-        btn_refrescar = QPushButton("Refrescar")
-        btn_refrescar.setObjectName("SecondaryButton")
+        btn_refrescar = SecondaryButton("Refrescar", self.cargar_datos, 18)
         btn_refrescar.setMinimumSize(140, 45)
-        btn_refrescar.setStyleSheet("font-size: 18px;")
-        btn_refrescar.setCursor(Qt.PointingHandCursor)
-        btn_refrescar.clicked.connect(self.cargar_datos)
         fila.addWidget(btn_refrescar)
 
         return fila
@@ -541,9 +521,7 @@ class PaginaGuardarAusencia(QWidget):
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(14)
 
-        lbl = QLabel("Guardar ausencia")
-        lbl.setObjectName("SectionTitle")
-        lbl.setStyleSheet("font-size: 28px;")
+        lbl = SectionTitle("Guardar ausencia", 28)
         layout.addWidget(lbl)
 
         # DNI + vista previa.
@@ -577,12 +555,8 @@ class PaginaGuardarAusencia(QWidget):
         layout.addWidget(self.check_justificada, alignment=Qt.AlignCenter)
 
         # Boton guardar.
-        btn_guardar = QPushButton("Guardar ausencia")
-        btn_guardar.setObjectName("PrimaryButton")
+        btn_guardar = PrimaryButton("Guardar ausencia", self._guardar_ausencia, 18)
         btn_guardar.setMinimumSize(220, 45)
-        btn_guardar.setStyleSheet("font-size: 18px;")
-        btn_guardar.setCursor(Qt.PointingHandCursor)
-        btn_guardar.clicked.connect(self._guardar_ausencia)
         layout.addWidget(btn_guardar, alignment=Qt.AlignCenter)
 
         # Error.

@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QGridLayout,
                                 QFrame)
 from PySide6.QtCore import Qt
 
-from gui.componentes import alerta_error
+from gui.componentes import alerta_error, SectionTitle
 from models.alumno import Alumno
 from models.curso import Curso
 
@@ -24,9 +24,7 @@ class VistaMisDatos(QWidget):
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(15)
 
-        lbl = QLabel("Mis Datos")
-        lbl.setObjectName("SectionTitle")
-        lbl.setStyleSheet("font-size: 40px;")
+        lbl = SectionTitle("Mis Datos", 40)
         layout.addWidget(lbl)
 
         lbl_ayuda = QLabel("Tu información personal.")

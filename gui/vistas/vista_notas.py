@@ -15,7 +15,8 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PySide6.QtCore import Qt
 
 from gui.componentes import (
-    alerta_error, alerta_exito, adjuntar_vista_previa_dni
+    alerta_error, alerta_exito, adjuntar_vista_previa_dni, SectionTitle,
+    PrimaryButton, SecondaryButton, FilterButton, DestructiveButton
 )
 from models.nota import Nota
 from models.alumno import Alumno
@@ -366,9 +367,7 @@ class VistaNotas(QWidget):
         layout.setSpacing(14)
 
         # Titulo
-        lbl = QLabel("Notas por Alumno")
-        lbl.setObjectName("SectionTitle")
-        lbl.setStyleSheet("font-size: 40px;")
+        lbl = SectionTitle("Notas por Alumno", 40)
         layout.addWidget(lbl)
 
         # Fila de filtro
@@ -386,12 +385,8 @@ class VistaNotas(QWidget):
         )
 
         # Boton agregar nota (reemplaza el formulario inline anterior)
-        btn_agregar = QPushButton("Agregar nota")
-        btn_agregar.setObjectName("PrimaryButton")
+        btn_agregar = PrimaryButton("Agregar nota", lambda: self._abrir_modal_nota(), 18)
         btn_agregar.setMinimumSize(200, 45)
-        btn_agregar.setStyleSheet("font-size: 18px;")
-        btn_agregar.setCursor(Qt.PointingHandCursor)
-        btn_agregar.clicked.connect(lambda: self._abrir_modal_nota())
         layout.addWidget(btn_agregar, alignment=Qt.AlignCenter)
 
         # Error
@@ -422,16 +417,10 @@ class VistaNotas(QWidget):
 
         # Botones
         btn_layout = QHBoxLayout()
-        btn_layout.setAlignment(Qt.AlignCenter)
-        btn_layout.setSpacing(30)
+        btn_layout.addStretch()
 
-        btn_volver = QPushButton("Volver")
-        btn_volver.setObjectName("DestructiveButton")
-        btn_volver.setMinimumSize(250, 60)
-        btn_volver.setStyleSheet("font-size: 25px;")
-        btn_volver.setCursor(Qt.PointingHandCursor)
-        if self.on_volver:
-            btn_volver.clicked.connect(self.on_volver)
+        btn_volver = DestructiveButton("Volver", self.on_volver, 25)
+        btn_volver.setMinimumSize(220, 55)
         btn_layout.addWidget(btn_volver)
 
         layout.addLayout(btn_layout)
@@ -465,20 +454,12 @@ class VistaNotas(QWidget):
         self.combo_bimestre_filtro.setStyleSheet("font-size: 18px;")
         fila.addWidget(self.combo_bimestre_filtro)
 
-        btn_filtrar = QPushButton("Filtrar")
-        btn_filtrar.setObjectName("FilterButton")
+        btn_filtrar = FilterButton("Filtrar", self.cargar_datos, 18)
         btn_filtrar.setMinimumSize(140, 45)
-        btn_filtrar.setStyleSheet("font-size: 18px;")
-        btn_filtrar.setCursor(Qt.PointingHandCursor)
-        btn_filtrar.clicked.connect(self.cargar_datos)
         fila.addWidget(btn_filtrar)
 
-        btn_refrescar = QPushButton("Refrescar")
-        btn_refrescar.setObjectName("SecondaryButton")
+        btn_refrescar = SecondaryButton("Refrescar", self._refrescar, 18)
         btn_refrescar.setMinimumSize(140, 45)
-        btn_refrescar.setStyleSheet("font-size: 18px;")
-        btn_refrescar.setCursor(Qt.PointingHandCursor)
-        btn_refrescar.clicked.connect(self._refrescar)
         fila.addWidget(btn_refrescar)
 
         return fila

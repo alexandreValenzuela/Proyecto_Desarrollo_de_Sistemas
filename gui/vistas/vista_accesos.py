@@ -12,7 +12,8 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                 QTableWidgetItem, QHeaderView)
 from PySide6.QtCore import Qt
 
-from gui.componentes import alerta_error
+from gui.componentes import (alerta_error, SectionTitle, DestructiveButton,
+                              FilterButton, SecondaryButton)
 from models.acceso import Acceso
 from auth.permisos import tiene_permiso
 
@@ -37,9 +38,7 @@ class VistaAccesos(QWidget):
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(14)
 
-        lbl = QLabel("Historial de Accesos")
-        lbl.setObjectName("SectionTitle")
-        lbl.setStyleSheet("font-size: 40px;")
+        lbl = SectionTitle("Historial de Accesos", 40)
         layout.addWidget(lbl)
 
         layout.addLayout(self._fila_filtro())
@@ -63,16 +62,10 @@ class VistaAccesos(QWidget):
         layout.addWidget(self.tabla)
 
         btn_layout = QHBoxLayout()
-        btn_layout.setAlignment(Qt.AlignCenter)
-        btn_layout.setSpacing(30)
+        btn_layout.addStretch()
 
-        btn_volver = QPushButton("Volver")
-        btn_volver.setObjectName("DestructiveButton")
-        btn_volver.setMinimumSize(250, 60)
-        btn_volver.setStyleSheet("font-size: 25px;")
-        btn_volver.setCursor(Qt.PointingHandCursor)
-        if self.on_volver:
-            btn_volver.clicked.connect(self.on_volver)
+        btn_volver = DestructiveButton("Volver", self.on_volver, 25)
+        btn_volver.setMinimumSize(220, 55)
         btn_layout.addWidget(btn_volver)
 
         layout.addLayout(btn_layout)
@@ -92,20 +85,12 @@ class VistaAccesos(QWidget):
         self.entrada_filtro.setStyleSheet("font-size: 18px;")
         fila.addWidget(self.entrada_filtro)
 
-        btn_filtrar = QPushButton("Filtrar")
-        btn_filtrar.setObjectName("FilterButton")
+        btn_filtrar = FilterButton("Filtrar", self.cargar_datos, 18)
         btn_filtrar.setMinimumSize(140, 45)
-        btn_filtrar.setStyleSheet("font-size: 18px;")
-        btn_filtrar.setCursor(Qt.PointingHandCursor)
-        btn_filtrar.clicked.connect(self.cargar_datos)
         fila.addWidget(btn_filtrar)
 
-        btn_refrescar = QPushButton("Refrescar")
-        btn_refrescar.setObjectName("SecondaryButton")
+        btn_refrescar = SecondaryButton("Refrescar", self.cargar_datos, 18)
         btn_refrescar.setMinimumSize(140, 45)
-        btn_refrescar.setStyleSheet("font-size: 18px;")
-        btn_refrescar.setCursor(Qt.PointingHandCursor)
-        btn_refrescar.clicked.connect(self.cargar_datos)
         fila.addWidget(btn_refrescar)
 
         return fila

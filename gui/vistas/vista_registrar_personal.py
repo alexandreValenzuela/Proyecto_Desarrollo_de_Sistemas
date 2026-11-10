@@ -8,7 +8,8 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                 QLineEdit, QComboBox, QPushButton)
 from PySide6.QtCore import Qt
 
-from gui.componentes import alerta_error, alerta_exito
+from gui.componentes import (alerta_error, alerta_exito, SectionTitle,
+                              PrimaryButton, DestructiveButton)
 from models.personal import Personal
 from models.cargo import Cargo
 from auth.permisos import PermisoDenegadoError, tiene_permiso
@@ -31,9 +32,7 @@ class VistaRegistrarPersonal(QWidget):
         layout.setSpacing(16)
 
         # Titulo
-        lbl = QLabel("Registro de Personal")
-        lbl.setObjectName("SectionTitle")
-        lbl.setStyleSheet("font-size: 30px;")
+        lbl = SectionTitle("Registro de Personal", 40)
         layout.addWidget(lbl)
 
         # Formulario
@@ -128,24 +127,14 @@ class VistaRegistrarPersonal(QWidget):
 
         # Botones
         btn_layout = QHBoxLayout()
-        btn_layout.setAlignment(Qt.AlignCenter)
-        btn_layout.setSpacing(30)
+        btn_layout.addStretch()
 
-        btn_registrar = QPushButton("Registrar Usuario")
-        btn_registrar.setObjectName("PrimaryButton")
-        btn_registrar.setMinimumSize(300, 60)
-        btn_registrar.setStyleSheet("font-size: 25px;")
-        btn_registrar.setCursor(Qt.PointingHandCursor)
-        btn_registrar.clicked.connect(self._intentar_registro)
+        btn_registrar = PrimaryButton("Registrar Usuario", self._intentar_registro, 25)
+        btn_registrar.setMinimumSize(220, 55)
         btn_layout.addWidget(btn_registrar)
 
-        btn_volver = QPushButton("Volver")
-        btn_volver.setObjectName("DestructiveButton")
-        btn_volver.setMinimumSize(250, 60)
-        btn_volver.setStyleSheet("font-size: 25px;")
-        btn_volver.setCursor(Qt.PointingHandCursor)
-        if self.on_volver:
-            btn_volver.clicked.connect(self.on_volver)
+        btn_volver = DestructiveButton("Volver", self.on_volver, 25)
+        btn_volver.setMinimumSize(220, 55)
         btn_layout.addWidget(btn_volver)
 
         layout.addLayout(btn_layout)

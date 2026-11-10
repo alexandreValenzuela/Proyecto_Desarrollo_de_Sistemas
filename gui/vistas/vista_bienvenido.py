@@ -9,6 +9,7 @@ resumen de datos segun el rol:
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
 from PySide6.QtCore import Qt
 
+from gui.componentes import SectionTitle
 from models.alumno import Alumno
 from models.nota import Nota
 from models.ausencia import Ausencia
@@ -29,9 +30,7 @@ class VistaBienvenido(QWidget):
         nombre = self.usuario.get("nombre", "")
         cargo = self.usuario.get("cargo", "")
 
-        lbl = QLabel(f"Bienvenido, {nombre}")
-        lbl.setObjectName("SectionTitle")
-        lbl.setStyleSheet("font-size: 30px;")
+        lbl = SectionTitle(f"Bienvenido, {nombre}", 40)
         layout.addWidget(lbl)
 
         lbl_rol = QLabel(f"Rol: {cargo}")

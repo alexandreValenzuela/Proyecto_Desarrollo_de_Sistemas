@@ -9,7 +9,8 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                 QLineEdit, QComboBox, QPushButton)
 from PySide6.QtCore import Qt
 
-from gui.componentes import alerta_error, alerta_exito
+from gui.componentes import (alerta_error, alerta_exito, SectionTitle,
+                              PrimaryButton, DestructiveButton)
 from models.alumno import Alumno
 from models.curso import Curso
 
@@ -39,9 +40,7 @@ class VistaCargarAlumnos(QWidget):
         layout.setSpacing(20)
 
         # Titulo
-        lbl = QLabel("Registro de Alumno")
-        lbl.setObjectName("SectionTitle")
-        lbl.setStyleSheet("font-size: 50px;")
+        lbl = SectionTitle("Registro de Alumno", 40)
         layout.addWidget(lbl)
 
         # Formulario centrado
@@ -114,24 +113,14 @@ class VistaCargarAlumnos(QWidget):
 
         # Botones
         btn_layout = QHBoxLayout()
-        btn_layout.setAlignment(Qt.AlignCenter)
-        btn_layout.setSpacing(30)
+        btn_layout.addStretch()
 
-        btn_guardar = QPushButton("Guardar Alumno")
-        btn_guardar.setObjectName("PrimaryButton")
-        btn_guardar.setMinimumSize(250, 60)
-        btn_guardar.setStyleSheet("font-size: 25px;")
-        btn_guardar.setCursor(Qt.PointingHandCursor)
-        btn_guardar.clicked.connect(self._guardar_alumno)
+        btn_guardar = PrimaryButton("Guardar Alumno", self._guardar_alumno, 25)
+        btn_guardar.setMinimumSize(220, 55)
         btn_layout.addWidget(btn_guardar)
 
-        btn_volver = QPushButton("Volver")
-        btn_volver.setObjectName("DestructiveButton")
-        btn_volver.setMinimumSize(250, 60)
-        btn_volver.setStyleSheet("font-size: 25px;")
-        btn_volver.setCursor(Qt.PointingHandCursor)
-        if self.on_volver:
-            btn_volver.clicked.connect(self.on_volver)
+        btn_volver = DestructiveButton("Volver", self.on_volver, 25)
+        btn_volver.setMinimumSize(220, 55)
         btn_layout.addWidget(btn_volver)
 
         layout.addLayout(btn_layout)
