@@ -59,12 +59,8 @@ class VistaAusencias(QWidget):
         self.tabs = QTabWidget()
         self.tabs.setObjectName("AusenciasTabs")
 
-        self.pagina_recientes = PaginaAusenciasRecientes(
-            self.usuario, on_cambio=self._refrescar_activa
-        )
-        self.pagina_por_alumno = PaginaAusenciasPorAlumno(
-            self.usuario, on_cambio=self._refrescar_activa
-        )
+        self.pagina_recientes = PaginaAusenciasRecientes(self.usuario)
+        self.pagina_por_alumno = PaginaAusenciasPorAlumno(self.usuario)
         self.pagina_guardar = PaginaGuardarAusencia(
             self.usuario, on_guardado=self._refrescar_recientes
         )
@@ -133,10 +129,9 @@ class VistaAusencias(QWidget):
 class PaginaAusenciasRecientes(QWidget):
     """Listado de ausencias con filtro por DNI y acciones por fila."""
 
-    def __init__(self, usuario, on_cambio=None):
+    def __init__(self, usuario):
         super().__init__()
         self.usuario = usuario
-        self.on_cambio = on_cambio
         self._construir_interfaz()
         self.cargar_datos()
 
@@ -271,9 +266,6 @@ class PaginaAusenciasRecientes(QWidget):
             )
             self.tabla.setCellWidget(row_idx, 3, self._botones_accion(ausencia))
 
-        if self.on_cambio:
-            self.on_cambio()
-
     # ========================================================================
     # ALTA / JUSTIFICACION / BAJA (delegadas; Guardar ausencia esta en su
     # propia pestaña, aca solo quedan justificar/desjustificar y eliminar)
@@ -351,10 +343,9 @@ class PaginaAusenciasRecientes(QWidget):
 class PaginaAusenciasPorAlumno(QWidget):
     """Conteos de faltas por alumno, con filtro por DNI y alerta."""
 
-    def __init__(self, usuario, on_cambio=None):
+    def __init__(self, usuario):
         super().__init__()
         self.usuario = usuario
-        self.on_cambio = on_cambio
         self._construir_interfaz()
         self.cargar_datos()
 
@@ -521,9 +512,6 @@ class PaginaAusenciasPorAlumno(QWidget):
             if en_alerta:
                 estado.setForeground(Qt.red)
             self.tabla_conteos.setItem(row_idx, 4, estado)
-
-        if self.on_cambio:
-            self.on_cambio()
 
     def _alumno_nombre(self, dni):
         try:
