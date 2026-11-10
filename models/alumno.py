@@ -66,7 +66,7 @@ class Alumno:
         if len(telefono) < 8 or len(telefono) > 15:
             raise ValueError(f"El {nombre_campo} debe tener entre 8 y 15 dígitos.")
 
-    def validar_datos(self):
+    def validar_datos(self, requerir_contrasena=True):
 
         if not self.nombre:
             raise ValueError("El nombre no puede estar vacío.")
@@ -98,7 +98,7 @@ class Alumno:
 
             raise ValueError("El alumno debe tener un curso asignado.")
 
-        if not self.password:
+        if requerir_contrasena and not self.password:
             raise ValueError("La contraseña no puede estar vacía.")
         
         return True
@@ -337,7 +337,7 @@ class Alumno:
 
     def actualizar(self):
 
-        self.validar_datos()
+        self.validar_datos(requerir_contrasena=False)
 
 
         try:
