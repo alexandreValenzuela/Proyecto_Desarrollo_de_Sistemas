@@ -55,47 +55,47 @@ class ModalEditarAlumno(QDialog):
         self.lbl_dni.setStyleSheet(
             "font-family: 'Cascadia Code', monospace; font-size: 18px;"
         )
-        form.addWidget(self._campo("DNI (no editable)", self.lbl_dni))
+        form.addLayout(self._campo("DNI (no editable)", self.lbl_dni))
 
         self.entrada_nombre = QLineEdit()
         self.entrada_nombre.setMinimumSize(300, 45)
         self.entrada_nombre.setStyleSheet("font-size: 18px;")
-        form.addWidget(self._campo("Nombre", self.entrada_nombre))
+        form.addLayout(self._campo("Nombre", self.entrada_nombre))
 
         self.entrada_apellido = QLineEdit()
         self.entrada_apellido.setMinimumSize(300, 45)
         self.entrada_apellido.setStyleSheet("font-size: 18px;")
-        form.addWidget(self._campo("Apellido", self.entrada_apellido))
+        form.addLayout(self._campo("Apellido", self.entrada_apellido))
 
         self.entrada_direccion = QLineEdit()
         self.entrada_direccion.setMinimumSize(300, 45)
         self.entrada_direccion.setStyleSheet("font-size: 18px;")
-        form.addWidget(self._campo("Direccion", self.entrada_direccion))
+        form.addLayout(self._campo("Direccion", self.entrada_direccion))
 
         self.entrada_telefono = QLineEdit()
         self.entrada_telefono.setMinimumSize(300, 45)
         self.entrada_telefono.setStyleSheet("font-size: 18px;")
-        form.addWidget(self._campo("Telefono", self.entrada_telefono))
+        form.addLayout(self._campo("Telefono", self.entrada_telefono))
 
         self.entrada_fecha = QLineEdit()
         self.entrada_fecha.setPlaceholderText("AAAA-MM-DD")
         self.entrada_fecha.setMinimumSize(300, 45)
         self.entrada_fecha.setStyleSheet("font-size: 18px;")
-        form.addWidget(self._campo("Fecha de nacimiento", self.entrada_fecha))
+        form.addLayout(self._campo("Fecha de nacimiento", self.entrada_fecha))
 
         self.combo_curso = QComboBox()
         self.combo_curso.addItem("Seleccionar curso", None)
         self.combo_curso.setMinimumSize(300, 45)
         self.combo_curso.setStyleSheet("font-size: 18px;")
         self._poblar_cursos()
-        form.addWidget(self._campo("Curso", self.combo_curso))
+        form.addLayout(self._campo("Curso", self.combo_curso))
 
         self.combo_estado = QComboBox()
         for valor, texto in self.ESTADOS:
             self.combo_estado.addItem(texto, valor)
         self.combo_estado.setMinimumSize(300, 45)
         self.combo_estado.setStyleSheet("font-size: 18px;")
-        form.addWidget(self._campo("Estado de acceso", self.combo_estado))
+        form.addLayout(self._campo("Estado de acceso", self.combo_estado))
 
         layout.addLayout(form)
 

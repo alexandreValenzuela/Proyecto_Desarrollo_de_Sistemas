@@ -65,7 +65,7 @@ class ModalNota(QDialog):
         self.entrada_dni.setPlaceholderText("DNI del alumno")
         self.entrada_dni.setMinimumSize(300, 45)
         self.entrada_dni.setStyleSheet("font-size: 18px;")
-        form.addWidget(self._campo("DNI", self.entrada_dni))
+        form.addLayout(self._campo("DNI", self.entrada_dni))
 
         self.lbl_previa_dni = QLabel("")
         self.lbl_previa_dni.setAlignment(Qt.AlignCenter)
@@ -76,7 +76,7 @@ class ModalNota(QDialog):
         self.entrada_materia.setPlaceholderText("Materia")
         self.entrada_materia.setMinimumSize(300, 45)
         self.entrada_materia.setStyleSheet("font-size: 18px;")
-        form.addWidget(self._campo("Materia", self.entrada_materia))
+        form.addLayout(self._campo("Materia", self.entrada_materia))
 
         self.combo_bimestre = QComboBox()
         self.combo_bimestre.addItems([
@@ -84,7 +84,7 @@ class ModalNota(QDialog):
         ])
         self.combo_bimestre.setMinimumSize(200, 45)
         self.combo_bimestre.setStyleSheet("font-size: 18px;")
-        form.addWidget(self._campo("Bimestre", self.combo_bimestre))
+        form.addLayout(self._campo("Bimestre", self.combo_bimestre))
 
         self.entrada_nota = QLineEdit()
         self.entrada_nota.setPlaceholderText(
@@ -92,13 +92,13 @@ class ModalNota(QDialog):
         )
         self.entrada_nota.setMinimumSize(120, 45)
         self.entrada_nota.setStyleSheet("font-size: 18px;")
-        form.addWidget(self._campo("Nota", self.entrada_nota))
+        form.addLayout(self._campo("Nota", self.entrada_nota))
 
         self.entrada_comentario = QLineEdit()
         self.entrada_comentario.setPlaceholderText("Comentario (opcional)")
         self.entrada_comentario.setMinimumSize(300, 45)
         self.entrada_comentario.setStyleSheet("font-size: 18px;")
-        form.addWidget(self._campo("Comentario", self.entrada_comentario))
+        form.addLayout(self._campo("Comentario", self.entrada_comentario))
 
         layout.addLayout(form)
 
