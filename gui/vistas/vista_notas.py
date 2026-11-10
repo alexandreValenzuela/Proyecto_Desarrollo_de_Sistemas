@@ -1,19 +1,22 @@
 """
-Vista "Cargar / Ver Notas": grilla de notas con filtro por DNI y alta
-o edicion de notas.
+Vista "Cargar / Ver Notas": grilla de notas con filtro por DNI y materia,
+boletin por bimestre y modal de alta/edicion de notas.
 
-El modelo tiene UNIQUE(dni, materia): guardar dos veces la misma materia
-falla, asi que el handler decide entre guardar() y actualizar() segun
-Nota.existe(dni, materia).
+El modelo tiene UNIQUE(dni, materia, bimestre): guardar dos veces la misma
+materia para el mismo bimestre falla, asi que el handler decide entre
+guardar() y actualizar() segun Nota.existe(dni, materia, bimestre).
 """
 import sqlite3
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                 QLineEdit, QComboBox, QPushButton,
-                                QTableWidget, QTableWidgetItem, QHeaderView)
+                                QTableWidget, QTableWidgetItem, QHeaderView,
+                                QDialog, QDialogButtonBox, QMessageBox)
 from PySide6.QtCore import Qt
 
-from gui.componentes import alerta_error, alerta_exito
+from gui.componentes import (
+    alerta_error, alerta_exito, adjuntar_vista_previa_dni
+)
 from models.nota import Nota
 from auth.permisos import tiene_permiso
 
@@ -21,8 +24,200 @@ from auth.permisos import tiene_permiso
 NIVEL_MINIMO = 5
 
 
-class VistaNotas(QWidget):
+class ModalNota(QDialog):
+    """
+    Modal para alta o edicion de una nota.
 
+    Si se pasa una Nota existente, se abre precargada y al guardar se llama
+    a actualizar(). Si no, se abre vacia y al guardar se llama a guardar().
+    """
+
+    def __init__(self, usuario, nota=None, parent=None):
+        super().__init__(parent)
+        self.usuario = usuario
+        self.nota = nota  # None = alta, Nota = edicion
+        self.setWindowTitle(
+            "Editar nota" if nota is not None else "Agregar nota"
+        )
+        self.setMinimumSize(620, 420)
+        self.setModal(True)
+        self._construir_interfaz()
+        if nota is not None:
+            self._precargar(nota)
+
+    def _construir_interfaz(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(14)
+
+        titulo = QLabel(
+            "Edicion de nota" if self.nota is not None else "Nueva nota"
+        )
+        titulo.setObjectName("SectionTitle")
+        titulo.setStyleSheet("font-size: 30px;")
+        layout.addWidget(titulo)
+
+        form = QVBoxLayout()
+        form.setAlignment(Qt.AlignCenter)
+        form.setSpacing(12)
+
+        self.entrada_dni = QLineEdit()
+        self.entrada_dni.setPlaceholderText("DNI del alumno")
+        self.entrada_dni.setMinimumSize(300, 45)
+        self.entrada_dni.setStyleSheet("font-size: 18px;")
+        form.addWidget(self._campo("DNI", self.entrada_dni))
+
+        self.lbl_previa_dni = QLabel("")
+        self.lbl_previa_dni.setAlignment(Qt.AlignCenter)
+        form.addWidget(self.lbl_previa_dni)
+        adjuntar_vista_previa_dni(self.entrada_dni, self.lbl_previa_dni)
+
+        self.entrada_materia = QLineEdit()
+        self.entrada_materia.setPlaceholderText("Materia")
+        self.entrada_materia.setMinimumSize(300, 45)
+        self.entrada_materia.setStyleSheet("font-size: 18px;")
+        form.addWidget(self._campo("Materia", self.entrada_materia))
+
+        self.combo_bimestre = QComboBox()
+        self.combo_bimestre.addItems([
+            "Bimestre 1", "Bimestre 2", "Bimestre 3", "Bimestre 4"
+        ])
+        self.combo_bimestre.setMinimumSize(200, 45)
+        self.combo_bimestre.setStyleSheet("font-size: 18px;")
+        form.addWidget(self._campo("Bimestre", self.combo_bimestre))
+
+        self.entrada_nota = QLineEdit()
+        self.entrada_nota.setPlaceholderText(
+            f"{Nota.NOTA_MINIMA}-{Nota.NOTA_MAXIMA}"
+        )
+        self.entrada_nota.setMinimumSize(120, 45)
+        self.entrada_nota.setStyleSheet("font-size: 18px;")
+        form.addWidget(self._campo("Nota", self.entrada_nota))
+
+        self.entrada_comentario = QLineEdit()
+        self.entrada_comentario.setPlaceholderText("Comentario (opcional)")
+        self.entrada_comentario.setMinimumSize(300, 45)
+        self.entrada_comentario.setStyleSheet("font-size: 18px;")
+        form.addWidget(self._campo("Comentario", self.entrada_comentario))
+
+        layout.addLayout(form)
+
+        self.lbl_error = QLabel("")
+        self.lbl_error.setAlignment(Qt.AlignCenter)
+        self.lbl_error.setStyleSheet(
+            "color: #ff0000; font-size: 16px; font-weight: bold;"
+        )
+        layout.addWidget(self.lbl_error)
+
+        btns = QDialogButtonBox(
+            QDialogButtonBox.Save | QDialogButtonBox.Cancel
+        )
+        btns.button(QDialogButtonBox.Save).setText("Guardar nota")
+        btns.button(QDialogButtonBox.Save).setObjectName("PrimaryButton")
+        btns.button(QDialogButtonBox.Save).setMinimumSize(160, 45)
+        btns.button(QDialogButtonBox.Cancel).setText("Cancelar")
+        btns.button(QDialogButtonBox.Cancel).setObjectName("DestructiveButton")
+        btns.button(QDialogButtonBox.Cancel).setMinimumSize(160, 45)
+        btns.accepted.connect(self._guardar)
+        btns.rejected.connect(self.reject)
+        layout.addWidget(btns, alignment=Qt.AlignCenter)
+
+    def _campo(self, etiqueta, widget):
+        fila = QHBoxLayout()
+        fila.setAlignment(Qt.AlignCenter)
+        fila.setSpacing(8)
+        lbl = QLabel(etiqueta)
+        lbl.setStyleSheet("""
+            font-family: 'Cascadia Code', 'Consolas', monospace;
+            font-size: 18px; color: #000000; background: transparent;
+        """)
+        lbl.setMinimumWidth(90)
+        fila.addWidget(lbl)
+        fila.addWidget(widget)
+        return fila
+
+    def _precargar(self, nota):
+        self.entrada_dni.setText(str(nota.dni))
+        self.entrada_materia.setText(nota.materia)
+        self.combo_bimestre.setCurrentText(f"Bimestre {nota.bimestre}")
+        self.entrada_nota.setText(str(nota.nota))
+        self.entrada_comentario.setText(nota.comentario or "")
+        self.lbl_previa_dni.setText("")
+
+    def _guardar(self):
+        dni = self.entrada_dni.text().strip()
+        materia = self.entrada_materia.text().strip()
+        valor = self.entrada_nota.text().strip()
+        comentario = self.entrada_comentario.text().strip()
+        bimestre_texto = self.combo_bimestre.currentText().strip()
+        bimestre = int(bimestre_texto.split()[-1])
+
+        self.lbl_error.clear()
+
+        if not all([dni, materia, valor]):
+            self.lbl_error.setText(
+                "DNI, materia, bimestre y nota son obligatorios."
+            )
+            alerta_error(
+                self, "Error al guardar",
+                "DNI, materia, bimestre y nota son obligatorios."
+            )
+            return
+
+        try:
+            if self.nota is not None:
+                # Edicion: actualizar en el lugar.
+                self.nota.dni = int(dni)
+                self.nota.materia = materia
+                self.nota.nota = int(valor)
+                self.nota.comentario = comentario or None
+                self.nota.bimestre = bimestre
+                self.nota.actualizar()
+                mensaje = f"Nota de {materia} (bimestre {bimestre}) actualizada."
+            else:
+                # Alta: si ya existe, actualizar en el lugar.
+                if Nota.existe(dni, materia, bimestre):
+                    existente = None
+                    for candidata in Nota.obtener_por_alumno_bimestre(
+                        dni, bimestre
+                    ):
+                        if candidata.materia == materia:
+                            existente = candidata
+                            break
+                    if existente is not None:
+                        existente.nota = int(valor)
+                        existente.comentario = comentario or None
+                        existente.actualizar()
+                        mensaje = (
+                            f"Nota de {materia} (bimestre {bimestre}) "
+                            "actualizada."
+                        )
+                    else:
+                        mensaje = "No se encontro la nota existente."
+                else:
+                    nueva = Nota(
+                        dni=dni, materia=materia, nota=valor,
+                        comentario=comentario, bimestre=bimestre
+                    )
+                    nueva.guardar()
+                    mensaje = (
+                        f"Nota de {materia} (bimestre {bimestre}) guardada."
+                    )
+
+        except (ValueError, RuntimeError, sqlite3.Error) as e:
+            self.lbl_error.setText(str(e))
+            alerta_error(self, "Error al guardar", str(e))
+            return
+        except Exception as e:
+            self.lbl_error.setText(str(e))
+            alerta_error(self, "Error inesperado", str(e))
+            return
+
+        alerta_exito(self, "Exito", mensaje)
+        self.accept()
+
+
+class VistaNotas(QWidget):
     def __init__(self, usuario, on_volver=None):
         super().__init__()
         self.usuario = usuario
@@ -49,13 +244,32 @@ class VistaNotas(QWidget):
         # Fila de filtro
         layout.addLayout(self._fila_filtro())
 
-        # Fila de carga
-        layout.addLayout(self._fila_carga())
+        self.lbl_preview_filtro_dni = QLabel("")
+        self.lbl_preview_filtro_dni.setAlignment(Qt.AlignCenter)
+        self.lbl_preview_filtro_dni.setStyleSheet(
+            "font-family: 'Cascadia Code', 'Consolas', monospace;"
+            " font-size: 13px; background: transparent;"
+        )
+        layout.addWidget(self.lbl_preview_filtro_dni)
+        adjuntar_vista_previa_dni(
+            self.entrada_filtro, self.lbl_preview_filtro_dni
+        )
+
+        # Boton agregar nota (reemplaza el formulario inline anterior)
+        btn_agregar = QPushButton("Agregar nota")
+        btn_agregar.setObjectName("PrimaryButton")
+        btn_agregar.setMinimumSize(200, 45)
+        btn_agregar.setStyleSheet("font-size: 18px;")
+        btn_agregar.setCursor(Qt.PointingHandCursor)
+        btn_agregar.clicked.connect(self._abrir_modal_nota)
+        layout.addWidget(btn_agregar, alignment=Qt.AlignCenter)
 
         # Error
         self.lbl_error = QLabel("")
         self.lbl_error.setAlignment(Qt.AlignCenter)
-        self.lbl_error.setStyleSheet("color: #ff0000; font-size: 16px; font-weight: bold;")
+        self.lbl_error.setStyleSheet(
+            "color: #ff0000; font-size: 16px; font-weight: bold;"
+        )
         layout.addWidget(self.lbl_error)
 
         # Boletin del alumno filtrado por DNI
@@ -93,7 +307,7 @@ class VistaNotas(QWidget):
         layout.addLayout(btn_layout)
 
     def _fila_filtro(self):
-        """Filtro por DNI y materia: vacios = todas las notas."""
+        """Filtro por DNI, materia y bimestre: vacios = todas las notas."""
         fila = QHBoxLayout()
         fila.setAlignment(Qt.AlignCenter)
         fila.setSpacing(15)
@@ -117,7 +331,7 @@ class VistaNotas(QWidget):
         self.combo_bimestre_filtro = QComboBox()
         self.combo_bimestre_filtro.addItems(["Todos", "Bimestre 1", "Bimestre 2",
                                               "Bimestre 3", "Bimestre 4"])
-        self.combo_bimestre_filtro.setMinimumSize(140, 45)
+        self.combo_bimestre_filtro.setMinimumSize(200, 45)
         self.combo_bimestre_filtro.setStyleSheet("font-size: 18px;")
         fila.addWidget(self.combo_bimestre_filtro)
 
@@ -136,58 +350,6 @@ class VistaNotas(QWidget):
         btn_refrescar.setCursor(Qt.PointingHandCursor)
         btn_refrescar.clicked.connect(self._refrescar)
         fila.addWidget(btn_refrescar)
-
-        return fila
-
-    def _fila_carga(self):
-        """Alta o edicion de una nota."""
-        fila = QHBoxLayout()
-        fila.setAlignment(Qt.AlignCenter)
-        fila.setSpacing(15)
-
-        fila.addWidget(self._label("DNI"))
-        self.entrada_dni = QLineEdit()
-        self.entrada_dni.setPlaceholderText("DNI")
-        self.entrada_dni.setMinimumSize(160, 45)
-        self.entrada_dni.setStyleSheet("font-size: 18px;")
-        fila.addWidget(self.entrada_dni)
-
-        fila.addWidget(self._label("Materia"))
-        self.entrada_materia = QLineEdit()
-        self.entrada_materia.setPlaceholderText("Materia")
-        self.entrada_materia.setMinimumSize(200, 45)
-        self.entrada_materia.setStyleSheet("font-size: 18px;")
-        fila.addWidget(self.entrada_materia)
-
-        fila.addWidget(self._label("Bimestre"))
-        self.combo_bimestre = QComboBox()
-        self.combo_bimestre.addItems(["Bimestre 1", "Bimestre 2", "Bimestre 3",
-                                       "Bimestre 4"])
-        self.combo_bimestre.setMinimumSize(140, 45)
-        self.combo_bimestre.setStyleSheet("font-size: 18px;")
-        fila.addWidget(self.combo_bimestre)
-
-        fila.addWidget(self._label("Nota"))
-        self.entrada_nota = QLineEdit()
-        self.entrada_nota.setPlaceholderText(f"{Nota.NOTA_MINIMA}-{Nota.NOTA_MAXIMA}")
-        self.entrada_nota.setMinimumSize(90, 45)
-        self.entrada_nota.setStyleSheet("font-size: 18px;")
-        fila.addWidget(self.entrada_nota)
-
-        fila.addWidget(self._label("Comentario"))
-        self.entrada_comentario = QLineEdit()
-        self.entrada_comentario.setPlaceholderText("Opcional")
-        self.entrada_comentario.setMinimumSize(220, 45)
-        self.entrada_comentario.setStyleSheet("font-size: 18px;")
-        fila.addWidget(self.entrada_comentario)
-
-        btn_guardar = QPushButton("Guardar nota")
-        btn_guardar.setObjectName("PrimaryButton")
-        btn_guardar.setMinimumSize(200, 45)
-        btn_guardar.setStyleSheet("font-size: 18px;")
-        btn_guardar.setCursor(Qt.PointingHandCursor)
-        btn_guardar.clicked.connect(self._guardar_nota)
-        fila.addWidget(btn_guardar)
 
         return fila
 
@@ -217,8 +379,6 @@ class VistaNotas(QWidget):
             for materia in Nota.obtener_materias():
                 self.combo_materia.addItem(materia)
         except RuntimeError:
-            # Sin acceso a la base no hay materias para mostrar; la tabla
-            # igualmente va a fallar con su propio cartel.
             pass
 
         indice = self.combo_materia.findText(seleccion)
@@ -234,10 +394,8 @@ class VistaNotas(QWidget):
         return tiene_permiso(self.usuario, NIVEL_MINIMO)
 
     def _sin_permiso(self):
-        """Avisa el permiso denegado y devuelve True si no se puede seguir."""
         if self._tiene_acceso():
             return False
-
         self.lbl_error.setText("No tenés permisos para gestionar las notas.")
         alerta_error(
             self, "Permiso denegado",
@@ -246,13 +404,22 @@ class VistaNotas(QWidget):
         return True
 
     # ========================================================================
+    # MODAL DE NOTA
+    # ========================================================================
+
+    def _abrir_modal_nota(self, nota=None):
+        """Abre el modal de nota vacia (alta) o precargada (edicion)."""
+        if not self._tiene_acceso():
+            return
+        modal = ModalNota(self.usuario, nota=nota, parent=self)
+        if modal.exec() == QDialog.Accepted:
+            self.cargar_datos()
+
+    # ========================================================================
     # CARGA DE DATOS
     # ========================================================================
 
     def cargar_datos(self):
-        # Defensa en profundidad: la seccion esta oculta y bloqueada para
-        # quien no llega a NIVEL_MINIMO, pero la vista se construye siempre,
-        # asi que la carga tambien valida. Sin modal: __init__ la invoca.
         if not self._tiene_acceso():
             self.tabla.setRowCount(0)
             self.lbl_boletin.clear()
@@ -284,17 +451,13 @@ class VistaNotas(QWidget):
             self.lbl_error.setText(str(e))
             alerta_error(self, "Error al cargar notas", str(e))
             return
-
         except Exception as e:
             self.lbl_error.setText(str(e))
             alerta_error(self, "Error inesperado", str(e))
             return
 
         self.tabla.setRowCount(0)
-
-        if not notas:
-            self.lbl_error.clear()
-            return
+        self.lbl_error.clear()
 
         for row_idx, nota in enumerate(notas):
             self.tabla.insertRow(row_idx)
@@ -307,7 +470,6 @@ class VistaNotas(QWidget):
             self.tabla.setCellWidget(row_idx, 4, self._botones_accion(nota))
 
         self._actualizar_boletin(dni)
-
         self.lbl_error.clear()
 
     def _actualizar_boletin(self, dni):
@@ -369,7 +531,7 @@ class VistaNotas(QWidget):
         btn_actualizar.setStyleSheet("font-size: 14px; padding: 4px 8px;")
         btn_actualizar.setCursor(Qt.PointingHandCursor)
         btn_actualizar.clicked.connect(
-            lambda _, n=nota: self._cargar_en_formulario(n)
+            lambda _, n=nota: self._abrir_modal_nota(n)
         )
         layout.addWidget(btn_actualizar)
 
@@ -384,112 +546,18 @@ class VistaNotas(QWidget):
 
         return contenedor
 
-    def _cargar_en_formulario(self, nota):
-        """Trae la nota al formulario para editarla y guardar."""
-        self.entrada_dni.setText(str(nota.dni))
-        self.entrada_materia.setText(nota.materia)
-        self.combo_bimestre.setCurrentText(f"Bimestre {nota.bimestre}")
-        self.entrada_nota.setText(str(nota.nota))
-        self.entrada_comentario.setText(nota.comentario or "")
-
-    # ========================================================================
-    # ALTA / EDICION / BAJA
-    # ========================================================================
-
-    def _guardar_nota(self):
-        # Defensa en profundidad: el handler vuelve a validar antes de escribir.
-        if self._sin_permiso():
-            return
-
-        dni = self.entrada_dni.text().strip()
-        materia = self.entrada_materia.text().strip()
-        valor = self.entrada_nota.text().strip()
-        comentario = self.entrada_comentario.text().strip()
-        bimestre_texto = self.combo_bimestre.currentText().strip()
-        bimestre = int(bimestre_texto.split()[-1])
-
-        try:
-            if not all([dni, materia, valor]):
-                self.lbl_error.setText("DNI, materia, bimestre y nota son obligatorios.")
-                alerta_error(
-                    self, "Error al guardar",
-                    "DNI, materia, bimestre y nota son obligatorios."
-                )
-                return
-
-            # UNIQUE(dni, materia, bimestre): si ya existe, se actualiza en el lugar.
-            existente = self._buscar_existente(dni, materia, bimestre)
-
-            if existente is not None:
-                # int() aca: validar_datos() compara contra el rango y una
-                # cadena tiraria TypeError en vez de ValueError.
-                existente.nota = int(valor)
-                existente.comentario = comentario or None
-                existente.bimestre = bimestre
-                existente.actualizar()
-                mensaje = f"Nota de {materia} (bimestre {bimestre}) actualizada."
-            else:
-                nuevo = Nota(
-                    dni=dni,
-                    materia=materia,
-                    nota=valor,
-                    comentario=comentario,
-                    bimestre=bimestre
-                )
-                nuevo.guardar()
-                mensaje = f"Nota de {materia} (bimestre {bimestre}) guardada."
-
-        except (ValueError, RuntimeError, sqlite3.Error) as e:
-            self.lbl_error.setText(str(e))
-            alerta_error(self, "Error al guardar", str(e))
-            return
-
-        except Exception as e:
-            # Red de seguridad: ningun error puede cerrar la app.
-            self.lbl_error.setText(str(e))
-            alerta_error(self, "Error inesperado", str(e))
-            return
-
-        alerta_exito(self, "Exito", mensaje)
-        self._limpiar_formulario()
-        self.cargar_datos()
-
-    def _buscar_existente(self, dni, materia, bimestre):
-        """Devuelve la Nota ya cargada, o None si todavia no existe."""
-        if not Nota.existe(dni, materia, bimestre):
-            return None
-
-        for candidata in Nota.obtener_por_alumno_bimestre(dni, bimestre):
-            if candidata.materia == materia:
-                return candidata
-
-        return None
-
     def _eliminar(self, nota_id):
-        # Defensa en profundidad: el handler vuelve a validar antes de borrar.
         if self._sin_permiso():
             return
-
         try:
             Nota.eliminar(nota_id)
-
         except (ValueError, RuntimeError, sqlite3.Error) as e:
             self.lbl_error.setText(str(e))
             alerta_error(self, "Error al eliminar", str(e))
             return
-
         except Exception as e:
             self.lbl_error.setText(str(e))
             alerta_error(self, "Error inesperado", str(e))
             return
-
         alerta_exito(self, "Exito", "Nota eliminada.")
-        self.cargar_datos()
-
-    def _limpiar_formulario(self):
-        self.entrada_dni.clear()
-        self.entrada_materia.clear()
-        self.combo_bimestre.setCurrentIndex(0)
-        self.entrada_nota.clear()
-        self.entrada_comentario.clear()
-        self.lbl_error.clear()
+        self.cargar_datos()

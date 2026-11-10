@@ -1,6 +1,8 @@
 """
 Vista de Autorizacion de Alumnos.
-Lista alumnos pendientes (autorizado=0) y permite aprobarlos.
+Lista alumnos pendientes (autorizado=0) y, para cada uno, permite
+autorizarlo (autorizado=1) o denegarle el acceso (autorizado=2) con
+botones uno al lado del otro.
 """
 import sqlite3
 
@@ -41,37 +43,23 @@ class VistaAutorizarAlumnos(QWidget):
         self.lbl_error.setStyleSheet("color: #ff0000; font-size: 16px; font-weight: bold;")
         layout.addWidget(self.lbl_error)
 
-        # Seccion 1: alumnos pendientes de autorizar (autorizado = 0).
-        lbl_pendientes = QLabel("Pendientes de autorizar")
-        lbl_pendientes.setObjectName("ResumenLinea")
-        lbl_pendientes.setStyleSheet(
+        # Lista unica de alumnos pendientes (autorizado = 0).
+        lbl_lista = QLabel("Alumnos pendientes de autorizacion")
+        lbl_lista.setObjectName("ResumenLinea")
+        lbl_lista.setStyleSheet(
             "font-size: 20px; font-weight: bold; margin-top: 10px;"
         )
-        layout.addWidget(lbl_pendientes)
+        layout.addWidget(lbl_lista)
 
-        self.tabla_pendientes = QTableWidget()
-        self.tabla_pendientes.setColumnCount(4)
-        self.tabla_pendientes.setHorizontalHeaderLabels(["DNI", "Nombre", "Apellido", "Accion"])
-        self.tabla_pendientes.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.tabla_pendientes.setSelectionBehavior(QTableWidget.SelectRows)
-        self.tabla_pendientes.setEditTriggers(QTableWidget.NoEditTriggers)
-        layout.addWidget(self.tabla_pendientes)
-
-        # Seccion 2: alumnos autorizados que se pueden denegar (autorizado = 1).
-        lbl_autorizados = QLabel("Autorizados que se pueden denegar")
-        lbl_autorizados.setObjectName("ResumenLinea")
-        lbl_autorizados.setStyleSheet(
-            "font-size: 20px; font-weight: bold; margin-top: 10px;"
+        self.tabla = QTableWidget()
+        self.tabla.setColumnCount(5)
+        self.tabla.setHorizontalHeaderLabels(
+            ["DNI", "Nombre", "Apellido", "Autorizar", "Denegar"]
         )
-        layout.addWidget(lbl_autorizados)
-
-        self.tabla_autorizados = QTableWidget()
-        self.tabla_autorizados.setColumnCount(4)
-        self.tabla_autorizados.setHorizontalHeaderLabels(["DNI", "Nombre", "Apellido", "Accion"])
-        self.tabla_autorizados.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.tabla_autorizados.setSelectionBehavior(QTableWidget.SelectRows)
-        self.tabla_autorizados.setEditTriggers(QTableWidget.NoEditTriggers)
-        layout.addWidget(self.tabla_autorizados)
+        self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.tabla.setSelectionBehavior(QTableWidget.SelectRows)
+        self.tabla.setEditTriggers(QTableWidget.NoEditTriggers)
+        layout.addWidget(self.tabla)
 
         # Botones
         btn_layout = QHBoxLayout()
@@ -90,7 +78,6 @@ class VistaAutorizarAlumnos(QWidget):
         layout.addLayout(btn_layout)
 
         self._cargar_pendientes()
-        self._cargar_autorizados()
 
     def _cargar_pendientes(self):
         try:
@@ -100,53 +87,43 @@ class VistaAutorizarAlumnos(QWidget):
             alerta_error(self, "Error al cargar pendientes", str(e))
             return
 
-        self.tabla_pendientes.setRowCount(0)
+        self.tabla.setRowCount(0)
 
         if not pendientes:
-            self.tabla_pendientes.setRowCount(1)
-            self.tabla_pendientes.setItem(0, 0, QTableWidgetItem("No hay alumnos pendientes."))
+            self.tabla.setRowCount(1)
+            self.tabla.setItem(0, 0, QTableWidgetItem("No hay alumnos pendientes."))
             return
 
         for row_idx, (dni, nombre, apellido) in enumerate(pendientes):
-            self.tabla_pendientes.insertRow(row_idx)
-            self.tabla_pendientes.setItem(row_idx, 0, QTableWidgetItem(str(dni)))
-            self.tabla_pendientes.setItem(row_idx, 1, QTableWidgetItem(str(nombre)))
-            self.tabla_pendientes.setItem(row_idx, 2, QTableWidgetItem(str(apellido)))
+            self.tabla.insertRow(row_idx)
+            self.tabla.setItem(row_idx, 0, QTableWidgetItem(str(dni)))
+            self.tabla.setItem(row_idx, 1, QTableWidgetItem(str(nombre)))
+            self.tabla.setItem(row_idx, 2, QTableWidgetItem(str(apellido)))
 
-            btn = QPushButton("Autorizar")
-            btn.setObjectName("PrimaryButton")
-            btn.setStyleSheet("font-size: 14px; padding: 4px 8px;")
-            btn.setCursor(Qt.PointingHandCursor)
-            btn.clicked.connect(lambda _, d=dni: self._autorizar(d))
-            self.tabla_pendientes.setCellWidget(row_idx, 3, btn)
+            # Celda Accion: Autorizar y Denegar lado a lado.
+            contenedor = QWidget()
+            lay = QHBoxLayout(contenedor)
+            lay.setContentsMargins(2, 2, 2, 2)
+            lay.setSpacing(6)
+            lay.setAlignment(Qt.AlignCenter)
 
-    def _cargar_autorizados(self):
-        try:
-            autorizados = Alumno.obtener_autorizados()
-        except Exception as e:
-            self.lbl_error.setText(str(e))
-            alerta_error(self, "Error al cargar autorizados", str(e))
-            return
+            btn_autorizar = QPushButton("Autorizar")
+            btn_autorizar.setObjectName("PrimaryButton")
+            btn_autorizar.setStyleSheet("font-size: 13px; padding: 4px 8px;")
+            btn_autorizar.setCursor(Qt.PointingHandCursor)
+            btn_autorizar.clicked.connect(lambda _, d=dni: self._autorizar(d))
+            lay.addWidget(btn_autorizar)
 
-        self.tabla_autorizados.setRowCount(0)
+            btn_denegar = QPushButton("Denegar")
+            btn_denegar.setObjectName("DestructiveButton")
+            btn_denegar.setStyleSheet("font-size: 13px; padding: 4px 8px;")
+            btn_denegar.setCursor(Qt.PointingHandCursor)
+            btn_denegar.clicked.connect(lambda _, d=dni: self._denegar(d))
+            lay.addWidget(btn_denegar)
 
-        if not autorizados:
-            self.tabla_autorizados.setRowCount(1)
-            self.tabla_autorizados.setItem(0, 0, QTableWidgetItem("No hay alumnos autorizados para denegar."))
-            return
-
-        for row_idx, (dni, nombre, apellido) in enumerate(autorizados):
-            self.tabla_autorizados.insertRow(row_idx)
-            self.tabla_autorizados.setItem(row_idx, 0, QTableWidgetItem(str(dni)))
-            self.tabla_autorizados.setItem(row_idx, 1, QTableWidgetItem(str(nombre)))
-            self.tabla_autorizados.setItem(row_idx, 2, QTableWidgetItem(str(apellido)))
-
-            btn = QPushButton("Denegar")
-            btn.setObjectName("DestructiveButton")
-            btn.setStyleSheet("font-size: 14px; padding: 4px 8px;")
-            btn.setCursor(Qt.PointingHandCursor)
-            btn.clicked.connect(lambda _, d=dni: self._denegar(d))
-            self.tabla_autorizados.setCellWidget(row_idx, 3, btn)
+            self.tabla.setCellWidget(row_idx, 3, contenedor)
+            # Columna 4 (Denegar header) queda vacia; la accion esta en la 3.
+            self.tabla.setItem(row_idx, 4, QTableWidgetItem(""))
 
     def _autorizar(self, dni):
         # Defensa en profundidad: la vista se oculta para quien no llega a
@@ -177,7 +154,6 @@ class VistaAutorizarAlumnos(QWidget):
         alerta_exito(self, "Exito", f"Alumno DNI {dni} autorizado.")
         self.lbl_error.clear()
         self._cargar_pendientes()
-        self._cargar_autorizados()
 
     def _denegar(self, dni):
         # Defensa en profundidad: la vista se oculta para quien no llega a
@@ -207,5 +183,4 @@ class VistaAutorizarAlumnos(QWidget):
 
         alerta_exito(self, "Exito", f"Alumno DNI {dni} denegado.")
         self.lbl_error.clear()
-        self._cargar_pendientes()
-        self._cargar_autorizados()
+        self._cargar_pendientes()

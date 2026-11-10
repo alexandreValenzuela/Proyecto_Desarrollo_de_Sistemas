@@ -156,3 +156,47 @@ def alerta_error(parent, titulo, mensaje):
 def alerta_exito(parent, titulo, mensaje):
     """Cartel grafico de confirmacion."""
     QMessageBox.information(parent, titulo, mensaje)
+
+
+def adjuntar_vista_previa_dni(entrada_dni, lbl_previa):
+    """
+    Conecta editingFinished del campo DNI para mostrar, bajo el campo,
+    el nombre del alumno (Nombre Apellido) o 'DNI no encontrado'.
+    Se consulta solo al salir del campo y se cachea el ultimo DNI para
+    no repetir consultas innecesarias.
+    """
+    from models.alumno import Alumno
+    import sqlite3
+
+    estado = {"ultimo": None}
+
+    def _consultar():
+        dni_texto = entrada_dni.text().strip()
+        if not dni_texto:
+            lbl_previa.setText("")
+            lbl_previa.setStyleSheet("")
+            estado["ultimo"] = None
+            return
+        if dni_texto == estado["ultimo"]:
+            return
+        try:
+            alumno = Alumno.obtener_por_dni(int(dni_texto))
+        except (ValueError, RuntimeError, sqlite3.Error):
+            lbl_previa.setText("DNI no encontrado")
+            lbl_previa.setStyleSheet(
+                "color: #b00000; font-size: 13px; font-weight: bold;"
+            )
+            return
+        if alumno is None:
+            lbl_previa.setText("DNI no encontrado")
+            lbl_previa.setStyleSheet(
+                "color: #b00000; font-size: 13px; font-weight: bold;"
+            )
+        else:
+            lbl_previa.setText(f"{alumno.nombre} {alumno.apellido}")
+            lbl_previa.setStyleSheet(
+                "color: #0055ff; font-size: 13px; font-weight: bold;"
+            )
+        estado["ultimo"] = dni_texto
+
+    entrada_dni.editingFinished.connect(_consultar)

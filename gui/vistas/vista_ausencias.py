@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                 QTableWidget, QTableWidgetItem, QHeaderView)
 from PySide6.QtCore import Qt
 
-from gui.componentes import alerta_error, alerta_exito
+from gui.componentes import alerta_error, alerta_exito, adjuntar_vista_previa_dni
 from models.ausencia import Ausencia
 from models.alumno import Alumno
 from auth.permisos import tiene_permiso
@@ -52,8 +52,30 @@ class VistaAusencias(QWidget):
         # Fila de filtro
         layout.addLayout(self._fila_filtro())
 
+        self.lbl_preview_filtro_dni = QLabel("")
+        self.lbl_preview_filtro_dni.setAlignment(Qt.AlignCenter)
+        self.lbl_preview_filtro_dni.setStyleSheet(
+            "font-family: 'Cascadia Code', 'Consolas', monospace;"
+            " font-size: 13px; background: transparent;"
+        )
+        layout.addWidget(self.lbl_preview_filtro_dni)
+        adjuntar_vista_previa_dni(
+            self.entrada_filtro, self.lbl_preview_filtro_dni
+        )
+
         # Fila de carga
         layout.addLayout(self._fila_carga())
+
+        self.lbl_preview_carga_dni = QLabel("")
+        self.lbl_preview_carga_dni.setAlignment(Qt.AlignCenter)
+        self.lbl_preview_carga_dni.setStyleSheet(
+            "font-family: 'Cascadia Code', 'Consolas', monospace;"
+            " font-size: 13px; background: transparent;"
+        )
+        layout.addWidget(self.lbl_preview_carga_dni)
+        adjuntar_vista_previa_dni(
+            self.entrada_dni, self.lbl_preview_carga_dni
+        )
 
         # Error
         self.lbl_error = QLabel("")

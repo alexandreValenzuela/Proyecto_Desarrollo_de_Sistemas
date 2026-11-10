@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                 QLineEdit, QPushButton)
 from PySide6.QtCore import Qt
 
-from gui.componentes import alerta_error, alerta_exito
+from gui.componentes import alerta_error, alerta_exito, adjuntar_vista_previa_dni
 from models.personal import Personal
 from models.alumno import Alumno
 from auth.permisos import tiene_permiso
@@ -75,6 +75,16 @@ class VistaCambiarPassword(QWidget):
         ))
         layout_admin.addLayout(
             self._fila_formulario("DNI del usuario", "dni_reset")
+        )
+        self.lbl_preview_dni_reset = QLabel("")
+        self.lbl_preview_dni_reset.setAlignment(Qt.AlignCenter)
+        self.lbl_preview_dni_reset.setStyleSheet(
+            "font-family: 'Cascadia Code', 'Consolas', monospace;"
+            " font-size: 13px; background: transparent;"
+        )
+        layout_admin.addWidget(self.lbl_preview_dni_reset)
+        adjuntar_vista_previa_dni(
+            self.entrada_dni_reset, self.lbl_preview_dni_reset
         )
         layout_admin.addLayout(
             self._fila_formulario("Contraseña nueva", "nueva_reset")
