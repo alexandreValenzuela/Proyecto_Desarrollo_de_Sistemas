@@ -20,6 +20,9 @@ from gui.ventana_principal import (
     VISTA_CAMBIAR_PASSWORD, VISTA_VER_ALUMNOS, VISTA_REGISTRAR_PERSONAL,
     VISTA_MATERIAS,
 )
+from gui.vistas.vista_ausencias import (
+    ModalAusenciasRecientes, ModalAusenciasPorAlumno,
+)
 
 
 # ========================================================================
@@ -210,8 +213,7 @@ def test_ausencias_conteos_y_alerta(qapp, sin_modales, usuarios, crear_alumno):
     Ausencia(dni=45000001, fecha="2026-09-10", justificada=True).guardar()
     Ausencia(dni=45000002, fecha="2026-09-01", justificada=False).guardar()
 
-    ventana = VentanaPrincipal(usuarios["preceptor"])
-    vista = ventana.vista_ausencias
+    vista = ModalAusenciasPorAlumno(usuarios["preceptor"])
     vista.cargar_datos()
 
     conteos = vista.tabla_conteos
@@ -230,6 +232,32 @@ def test_ausencias_conteos_y_alerta(qapp, sin_modales, usuarios, crear_alumno):
     assert filas["45000001"] == ("1", "6", "Alerta")
     # Luis: 1 sin justificar -> OK.
     assert filas["45000002"] == ("0", "1", "OK")
+
+
+def test_ausencias_recientes_alta_y_estado(qapp, sin_modales, usuarios, crear_alumno):
+    """Modal de ausencias recientes: guardar una ausencia y alternar su
+    justificacion se refleja en la lista."""
+    crear_alumno(dni=45000001, nombre="Ana")
+
+    vista = ModalAusenciasRecientes(usuarios["preceptor"])
+    vista.entrada_dni.setText("45000001")
+    vista.entrada_fecha.setText("2026-09-01")
+    vista.check_justificada.setChecked(False)
+    vista._guardar_ausencia()
+
+    assert vista.tabla.rowCount() == 1
+    assert vista.tabla.item(0, 0).text() == "45000001"
+    assert vista.tabla.item(0, 1).text() == "2026-09-01"
+    assert vista.tabla.item(0, 2).text() == "No"
+
+    # Alternar a justificada.
+    ausencia_id = None
+    for candidata in Ausencia.obtener_por_alumno(45000001):
+        ausencia_id = candidata.ausencia_id
+    assert ausencia_id is not None
+    vista._alternar_justificada(ausencia_id)
+    vista.cargar_datos()
+    assert vista.tabla.item(0, 2).text() == "Si"
 
 
 # ========================================================================
