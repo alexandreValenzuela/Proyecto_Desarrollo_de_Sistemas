@@ -34,6 +34,7 @@ from gui.vistas.vista_mis_ausencias import VistaMisAusencias
 from gui.vistas.vista_mis_datos import VistaMisDatos
 from gui.vistas.vista_accesos import VistaAccesos
 from gui.vistas.vista_cambiar_password import VistaCambiarPassword
+from gui.vistas.vista_materias import VistaMaterias
 
 # Indices de stack_vistas.
 VISTA_BIENVENIDO = 0
@@ -49,6 +50,7 @@ VISTA_MIS_AUSENCIAS = 9
 VISTA_MIS_DATOS = 10
 VISTA_ACCESOS = 11
 VISTA_CAMBIAR_PASSWORD = 12
+VISTA_MATERIAS = 13
 
 # Niveles minimos de las secciones restringidas.
 NIVEL_ALUMNOS = 3            # ver / cargar alumnos (alta institucional)
@@ -58,6 +60,7 @@ NIVEL_PROFESORES = 3         # listado de personal (expone DNI del staff)
 NIVEL_NOTAS = 5
 NIVEL_AUSENCIAS = 3
 NIVEL_ACCESOS = 5            # historial de intentos de login
+NIVEL_MATERIAS = 3           # catalogo de materias (preceptor o superior)
 
 
 class VentanaPrincipal(QMainWindow):
@@ -73,6 +76,7 @@ class VentanaPrincipal(QMainWindow):
         VISTA_NOTAS: NIVEL_NOTAS,
         VISTA_AUSENCIAS: NIVEL_AUSENCIAS,
         VISTA_ACCESOS: NIVEL_ACCESOS,
+        VISTA_MATERIAS: NIVEL_MATERIAS,
     }
 
     # Vistas exclusivas del alumno (tipo=alumno): se abren solo con su DNI.
@@ -162,6 +166,17 @@ class VentanaPrincipal(QMainWindow):
             tiene_permiso(self.usuario, NIVEL_REGISTRAR_PERSONAL)
         )
 
+        self.btn_materias_menu = SecondaryButton(
+            "Crear / Ver Materias",
+            lambda: self._abrir_seccion(VISTA_MATERIAS),
+            40
+        )
+        self.btn_materias_menu.setMinimumSize(400, 80)
+        self.btn_materias_menu.setVisible(
+            tiene_permiso(self.usuario, NIVEL_MATERIAS)
+        )
+        layout.addLayout(self._centrar(self.btn_materias_menu))
+
         layout.addStretch()
 
         self.stack_global.addWidget(menu_widget)  # Index 0
@@ -218,6 +233,7 @@ class VentanaPrincipal(QMainWindow):
         # Vistas para todo tipo de cuenta.
         self.vista_accesos = VistaAccesos(self.usuario, on_volver=al_menu)
         self.vista_cambiar_password = VistaCambiarPassword(self.usuario)
+        self.vista_materias = VistaMaterias(self.usuario, on_volver=al_menu)
 
         self.stack_vistas.addWidget(self.vista_bienvenido)             # 0
         self.stack_vistas.addWidget(self.vista_ver_alumnos)            # 1
@@ -232,6 +248,7 @@ class VentanaPrincipal(QMainWindow):
         self.stack_vistas.addWidget(self.vista_mis_datos)              # 10
         self.stack_vistas.addWidget(self.vista_accesos)                # 11
         self.stack_vistas.addWidget(self.vista_cambiar_password)       # 12
+        self.stack_vistas.addWidget(self.vista_materias)               # 13
 
         self.stack_vistas.setCurrentIndex(VISTA_BIENVENIDO)
 
@@ -344,6 +361,19 @@ class VentanaPrincipal(QMainWindow):
             tiene_permiso(self.usuario, NIVEL_ACCESOS)
         )
 
+        # Grupo Materias
+        self.lbl_grupo_materias = self._label_grupo("MATERIAS")
+        layout.addWidget(self.lbl_grupo_materias)
+
+        self.btn_materias = self._boton_sidebar(
+            "Crear / Ver Materias", VISTA_MATERIAS
+        )
+        layout.addWidget(self.btn_materias)
+
+        self.btn_materias.setVisible(
+            tiene_permiso(self.usuario, NIVEL_MATERIAS)
+        )
+
         # Un grupo sin botones visibles no muestra su rotulo.
         self._sincronizar_grupos()
 
@@ -398,6 +428,7 @@ class VentanaPrincipal(QMainWindow):
             self.lbl_grupo_notas: [
                 self.btn_notas, self.btn_ausencias, self.btn_accesos
             ],
+            self.lbl_grupo_materias: [self.btn_materias],
         }
         for label, botones in grupos.items():
             label.setVisible(any(not b.isHidden() for b in botones))

@@ -18,6 +18,11 @@ from gui.componentes import (
     alerta_error, alerta_exito, adjuntar_vista_previa_dni
 )
 from models.nota import Nota
+from models.alumno import Alumno
+from models.curso import Curso
+from models.materia import (
+    Materia, nivel_de_curso, especialidad_de_curso, ESPECIALIDADES
+)
 from auth.permisos import tiene_permiso
 
 # Cargar y editar notas es tarea docente: Profesor o superior.
@@ -36,6 +41,8 @@ class ModalNota(QDialog):
         super().__init__(parent)
         self.usuario = usuario
         self.nota = nota  # None = alta, Nota = edicion
+        self.curso_id_alumno = None  # curso del alumno que se califica
+        self.materia_filtrada_por_alumno = False
         self.setWindowTitle(
             "Editar nota" if nota is not None else "Agregar nota"
         )
@@ -71,12 +78,39 @@ class ModalNota(QDialog):
         self.lbl_previa_dni.setAlignment(Qt.AlignCenter)
         form.addWidget(self.lbl_previa_dni)
         adjuntar_vista_previa_dni(self.entrada_dni, self.lbl_previa_dni)
+        # Al salir del campo DNI, re-filtrar las materias por el curso del
+        # alumno que se está calificando.
+        self.entrada_dni.editingFinished.connect(
+            self._filtrar_materias_por_dni
+        )
 
-        self.entrada_materia = QLineEdit()
-        self.entrada_materia.setPlaceholderText("Materia")
-        self.entrada_materia.setMinimumSize(300, 45)
-        self.entrada_materia.setStyleSheet("font-size: 18px;")
-        form.addLayout(self._campo("Materia", self.entrada_materia))
+        self.combo_materia = QComboBox()
+        self.combo_materia.setMinimumSize(300, 45)
+        self.combo_materia.setStyleSheet("font-size: 18px;")
+        self.combo_materia.addItem("Seleccionar materia", None)
+        form.addLayout(self._campo("Materia", self.combo_materia))
+
+        # Sobrescritor: carga TODAS las materias del catalogo, ignorando el
+        # filtro por curso del alumno que se esta calificando.
+        fila_sobrescribir = QHBoxLayout()
+        fila_sobrescribir.setAlignment(Qt.AlignCenter)
+        fila_sobrescribir.setSpacing(8)
+        self.btn_sobrescribir = QPushButton("Todas las materias")
+        self.btn_sobrescribir.setObjectName("FilterButton")
+        self.btn_sobrescribir.setStyleSheet(
+            "font-size: 14px; padding: 4px 8px;"
+        )
+        self.btn_sobrescribir.setCursor(Qt.PointingHandCursor)
+        self.btn_sobrescribir.clicked.connect(self._sobrescribir_filtro_materias)
+        fila_sobrescribir.addWidget(self.btn_sobrescribir)
+        self.lbl_filtro_materias = QLabel("")
+        self.lbl_filtro_materias.setAlignment(Qt.AlignCenter)
+        self.lbl_filtro_materias.setStyleSheet(
+            "font-family: 'Cascadia Code', 'Consolas', monospace;"
+            " font-size: 12px; color: #555555; background: transparent;"
+        )
+        fila_sobrescribir.addWidget(self.lbl_filtro_materias)
+        form.addLayout(fila_sobrescribir)
 
         self.combo_bimestre = QComboBox()
         self.combo_bimestre.addItems([
@@ -138,15 +172,103 @@ class ModalNota(QDialog):
 
     def _precargar(self, nota):
         self.entrada_dni.setText(str(nota.dni))
-        self.entrada_materia.setText(nota.materia)
+        # Filtrar materias por el curso del alumno que se está editando.
+        self._filtrar_materias_por_dni()
+        self._seleccionar_materia_en_combo(nota.materia)
         self.combo_bimestre.setCurrentText(f"Bimestre {nota.bimestre}")
         self.entrada_nota.setText(str(nota.nota))
         self.entrada_comentario.setText(nota.comentario or "")
         self.lbl_previa_dni.setText("")
 
+    def _filtrar_materias_por_dni(self):
+        """
+        Filtra el combo de materias por el curso (año + especialidad) del
+        alumno cuyo DNI está en el campo. Si no hay alumno válido, muestra
+        todas las materias.
+        """
+        dni_texto = self.entrada_dni.text().strip()
+        self.curso_id_alumno = None
+        self.materia_filtrada_por_alumno = False
+
+        if not dni_texto:
+            self._poblar_materias_combo(Materia.obtener_todos())
+            self.lbl_filtro_materias.setText("")
+            return
+
+        try:
+            alumno = Alumno.obtener_por_dni(int(dni_texto))
+        except (ValueError, RuntimeError):
+            alumno = None
+
+        if alumno is None or alumno.curso_id is None:
+            self._poblar_materias_combo(Materia.obtener_todos())
+            self.lbl_filtro_materias.setText("")
+            return
+
+        try:
+            curso = Curso.obtener_por_id(alumno.curso_id)
+        except RuntimeError:
+            curso = None
+
+        if curso is None:
+            self._poblar_materias_combo(Materia.obtener_todos())
+            self.lbl_filtro_materias.setText("")
+            return
+
+        self.curso_id_alumno = alumno.curso_id
+        nivel = nivel_de_curso(curso.curso)
+        especialidad = especialidad_de_curso(curso.curso)
+        materias = Materia.obtener_por_filtro(
+            nivel=nivel, especialidad=especialidad
+        )
+        self._poblar_materias_combo(materias)
+        self.materia_filtrada_por_alumno = True
+        self.lbl_filtro_materias.setText(
+            f"Filtrado por {curso.curso} ({nivel}, {especialidad})"
+        )
+
+    def _sobrescribir_filtro_materias(self):
+        """Muestra TODAS las materias del catalogo, ignorando el filtro
+        por curso del alumno."""
+        self.curso_id_alumno = None
+        self.materia_filtrada_por_alumno = False
+        self._poblar_materias_combo(Materia.obtener_todos())
+        self.lbl_filtro_materias.setText(
+            "Mostrando todas las materias (sobrescritura del filtro)"
+        )
+
+    def _poblar_materias_combo(self, materias, seleccion=None):
+        """Llena el combo de materias con la lista dada."""
+        self.combo_materia.blockSignals(True)
+        self.combo_materia.clear()
+        self.combo_materia.addItem("Seleccionar materia", None)
+
+        for materia in materias:
+            self.combo_materia.addItem(materia.nombre, materia.materia_id)
+
+        self.combo_materia.blockSignals(False)
+
+        if seleccion is not None:
+            self._seleccionar_materia_en_combo(seleccion)
+
+    def _seleccionar_materia_en_combo(self, nombre_materia):
+        """Selecciona una materia por nombre en el combo. Si no esta en la
+        lista actual, la agrega como opcion extra (sobrescritura)."""
+        indice = self.combo_materia.findText(str(nombre_materia))
+        if indice != -1:
+            self.combo_materia.setCurrentIndex(indice)
+        else:
+            # La materia no esta en el filtro actual (p. ej. nota vieja de
+            # otra especialidad). La agregamos para que siga editable.
+            self.combo_materia.addItem(str(nombre_materia), None)
+            self.combo_materia.setCurrentIndex(
+                self.combo_materia.count() - 1
+            )
+
     def _guardar(self):
         dni = self.entrada_dni.text().strip()
-        materia = self.entrada_materia.text().strip()
+        materia = self.combo_materia.currentText().strip()
+        curso_id = self.combo_materia.currentData()
         valor = self.entrada_nota.text().strip()
         comentario = self.entrada_comentario.text().strip()
         bimestre_texto = self.combo_bimestre.currentText().strip()
@@ -161,6 +283,14 @@ class ModalNota(QDialog):
             alerta_error(
                 self, "Error al guardar",
                 "DNI, materia, bimestre y nota son obligatorios."
+            )
+            return
+
+        if materia == "Seleccionar materia" or curso_id is None:
+            self.lbl_error.setText("Debe seleccionar una materia valida.")
+            alerta_error(
+                self, "Error al guardar",
+                "Debe seleccionar una materia valida."
             )
             return
 

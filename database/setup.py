@@ -90,6 +90,30 @@ def inicio():
         )
 
         # ---------------------------------------------------------------------
+        # MATERIAS
+        # Cada materia pertenece a un curso (NxGy). A partir del curso se
+        # derivan el año (nivel) y la especialidad:
+        #   G1 y G3 -> Computacion
+        #   G2 y G4 -> Gestion y Administracion de las Organizaciones
+        # ---------------------------------------------------------------------
+
+        cursor.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS materia (
+                materia_id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                nombre TEXT NOT NULL UNIQUE
+                CHECK(length(nombre) <= 255),
+
+                curso_id INTEGER NOT NULL,
+
+                FOREIGN KEY(curso_id)
+                REFERENCES curso(curso_id)
+            )
+            '''
+        )
+
+        # ---------------------------------------------------------------------
         # PERSONAL
         # ---------------------------------------------------------------------
 

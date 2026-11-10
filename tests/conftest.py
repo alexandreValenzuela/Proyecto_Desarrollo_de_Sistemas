@@ -74,7 +74,7 @@ def bd_limpia(_esquema_creado):
     Luego recarga el personal base (INSERT OR IGNORE) desde el seed.
     """
     with obtener_conexion() as conexion:
-        for tabla in ("accesos", "ausencias", "notas", "personal", "alumnos"):
+        for tabla in ("accesos", "ausencias", "materia", "notas", "personal", "alumnos"):
             conexion.execute(f"DELETE FROM {tabla}")
 
     cargar_datos_iniciales()

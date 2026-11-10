@@ -18,6 +18,7 @@ from gui.ventana_principal import (
     VentanaPrincipal, VISTA_NOTAS, VISTA_AUSENCIAS, VISTA_ACCESOS,
     VISTA_MIS_NOTAS, VISTA_MIS_AUSENCIAS, VISTA_MIS_DATOS,
     VISTA_CAMBIAR_PASSWORD, VISTA_VER_ALUMNOS, VISTA_REGISTRAR_PERSONAL,
+    VISTA_MATERIAS,
 )
 
 
@@ -307,3 +308,26 @@ def test_no_admin_no_ve_panel_reset(qapp, sin_modales, usuarios):
     ventana = VentanaPrincipal(usuarios["profesor"])
     # El panel de reseteo esta oculto para quien no es admin (nivel 10).
     assert ventana.vista_cambiar_password.panel_admin.isHidden()
+
+
+# ========================================================================
+# MATERIAS
+# ========================================================================
+
+def test_admin_ve_materias(qapp, sin_modales, usuarios):
+    """El admin ve la seccion Materias en el sidebar y la vista carga vacia."""
+    ventana = VentanaPrincipal(usuarios["admin"])
+
+    assert not ventana.botones_sidebar[VISTA_MATERIAS].isHidden()
+    assert ventana._puede_abrir(VISTA_MATERIAS)
+
+    ventana.vista_materias.cargar_datos()
+    assert ventana.vista_materias.tabla.rowCount() == 0
+
+
+def test_preceptor_ve_materias(qapp, sin_modales, usuarios):
+    """El preceptor (nivel 3) tambien puede gestionar materias."""
+    ventana = VentanaPrincipal(usuarios["preceptor"])
+
+    assert not ventana.botones_sidebar[VISTA_MATERIAS].isHidden()
+    assert ventana._puede_abrir(VISTA_MATERIAS)
