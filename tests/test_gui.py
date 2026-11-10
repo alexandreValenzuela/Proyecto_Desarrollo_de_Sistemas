@@ -21,7 +21,7 @@ from gui.ventana_principal import (
     VISTA_MATERIAS,
 )
 from gui.vistas.vista_ausencias import (
-    ModalAusenciasRecientes, ModalAusenciasPorAlumno,
+    PaginaAusenciasRecientes, PaginaAusenciasPorAlumno, PaginaGuardarAusencia,
 )
 
 
@@ -234,30 +234,65 @@ def test_ausencias_conteos_y_alerta(qapp, sin_modales, usuarios, crear_alumno):
     assert filas["45000002"] == ("0", "1", "OK")
 
 
-def test_ausencias_recientes_alta_y_estado(qapp, sin_modales, usuarios, crear_alumno):
-    """Modal de ausencias recientes: guardar una ausencia y alternar su
-    justificacion se refleja en la lista."""
+def test_ausencias_conteos_y_alerta(qapp, sin_modales, usuarios, crear_alumno):
+    """Un alumno con 6 faltas sin justificar dispara la alerta; otro no."""
+    crear_alumno(dni=45000001, nombre="Ana")
+    crear_alumno(dni=45000002, nombre="Luis")
+    for dia in range(6):
+        Ausencia(
+            dni=45000001, fecha=f"2026-09-0{dia + 1}", justificada=False
+        ).guardar()
+    Ausencia(dni=45000001, fecha="2026-09-10", justificada=True).guardar()
+    Ausencia(dni=45000002, fecha="2026-09-01", justificada=False).guardar()
+
+    vista = PaginaAusenciasPorAlumno(usuarios["preceptor"])
+    vista.cargar_datos()
+
+    conteos = vista.tabla_conteos
+    assert conteos.rowCount() == 2
+
+    filas = {
+        conteos.item(f, 0).text(): (
+            conteos.item(f, 2).text(),
+            conteos.item(f, 3).text(),
+            conteos.item(f, 4).text(),
+        )
+        for f in range(conteos.rowCount())
+    }
+
+    # Ana: 7 ausencias (1 justificada, 6 sin justificar) -> alerta.
+    assert filas["45000001"] == ("1", "6", "Alerta")
+    # Luis: 1 sin justificar -> OK.
+    assert filas["45000002"] == ("0", "1", "OK")
+
+
+def test_ausencias_guardar_alta_y_estado(qapp, sin_modales, usuarios, crear_alumno):
+    """Pestana Guardar ausencia: registrar una ausencia y verificar que
+    aparece en la pestana de recientes."""
     crear_alumno(dni=45000001, nombre="Ana")
 
-    vista = ModalAusenciasRecientes(usuarios["preceptor"])
-    vista.entrada_dni.setText("45000001")
-    vista.entrada_fecha.setText("2026-09-01")
-    vista.check_justificada.setChecked(False)
-    vista._guardar_ausencia()
+    guardar = PaginaGuardarAusencia(usuarios["preceptor"])
+    guardar.entrada_dni.setText("45000001")
+    guardar.entrada_fecha.setText("2026-09-01")
+    guardar.check_justificada.setChecked(False)
+    guardar._guardar_ausencia()
 
-    assert vista.tabla.rowCount() == 1
-    assert vista.tabla.item(0, 0).text() == "45000001"
-    assert vista.tabla.item(0, 1).text() == "2026-09-01"
-    assert vista.tabla.item(0, 2).text() == "No"
+    recientes = PaginaAusenciasRecientes(usuarios["preceptor"])
+    recientes.cargar_datos()
 
-    # Alternar a justificada.
+    assert recientes.tabla.rowCount() == 1
+    assert recientes.tabla.item(0, 0).text() == "45000001"
+    assert recientes.tabla.item(0, 1).text() == "2026-09-01"
+    assert recientes.tabla.item(0, 2).text() == "No"
+
+    # Alternar a justificada desde recientes.
     ausencia_id = None
     for candidata in Ausencia.obtener_por_alumno(45000001):
         ausencia_id = candidata.ausencia_id
     assert ausencia_id is not None
-    vista._alternar_justificada(ausencia_id)
-    vista.cargar_datos()
-    assert vista.tabla.item(0, 2).text() == "Si"
+    recientes._alternar_justificada(ausencia_id)
+    recientes.cargar_datos()
+    assert recientes.tabla.item(0, 2).text() == "Si"
 
 
 # ========================================================================
