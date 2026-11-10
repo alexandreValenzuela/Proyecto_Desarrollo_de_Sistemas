@@ -261,7 +261,7 @@ class VistaNotas(QWidget):
         btn_agregar.setMinimumSize(200, 45)
         btn_agregar.setStyleSheet("font-size: 18px;")
         btn_agregar.setCursor(Qt.PointingHandCursor)
-        btn_agregar.clicked.connect(self._abrir_modal_nota)
+        btn_agregar.clicked.connect(lambda: self._abrir_modal_nota())
         layout.addWidget(btn_agregar, alignment=Qt.AlignCenter)
 
         # Error
