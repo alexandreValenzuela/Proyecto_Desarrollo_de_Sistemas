@@ -113,6 +113,14 @@ class VistaNotas(QWidget):
         self.combo_materia.setStyleSheet("font-size: 18px;")
         fila.addWidget(self.combo_materia)
 
+        fila.addWidget(self._label("Bimestre"))
+        self.combo_bimestre_filtro = QComboBox()
+        self.combo_bimestre_filtro.addItems(["Todos", "Bimestre 1", "Bimestre 2",
+                                              "Bimestre 3", "Bimestre 4"])
+        self.combo_bimestre_filtro.setMinimumSize(140, 45)
+        self.combo_bimestre_filtro.setStyleSheet("font-size: 18px;")
+        fila.addWidget(self.combo_bimestre_filtro)
+
         btn_filtrar = QPushButton("Filtrar")
         btn_filtrar.setObjectName("FilterButton")
         btn_filtrar.setMinimumSize(140, 45)
@@ -150,6 +158,14 @@ class VistaNotas(QWidget):
         self.entrada_materia.setMinimumSize(200, 45)
         self.entrada_materia.setStyleSheet("font-size: 18px;")
         fila.addWidget(self.entrada_materia)
+
+        fila.addWidget(self._label("Bimestre"))
+        self.combo_bimestre = QComboBox()
+        self.combo_bimestre.addItems(["Bimestre 1", "Bimestre 2", "Bimestre 3",
+                                       "Bimestre 4"])
+        self.combo_bimestre.setMinimumSize(140, 45)
+        self.combo_bimestre.setStyleSheet("font-size: 18px;")
+        fila.addWidget(self.combo_bimestre)
 
         fila.addWidget(self._label("Nota"))
         self.entrada_nota = QLineEdit()
@@ -245,12 +261,24 @@ class VistaNotas(QWidget):
 
         dni = self.entrada_filtro.text().strip()
         materia = self.combo_materia.currentText().strip()
+        bimestre_texto = self.combo_bimestre_filtro.currentText().strip()
 
         try:
-            notas = Nota.obtener_por_alumno(dni) if dni else Nota.obtener_todas()
+            if dni:
+                if bimestre_texto == "Todos":
+                    notas = Nota.obtener_por_alumno(dni)
+                else:
+                    bimestre = int(bimestre_texto.split()[-1])
+                    notas = Nota.obtener_por_alumno_bimestre(dni, bimestre)
+            else:
+                notas = Nota.obtener_todas()
 
             if materia and materia != "Todas las materias":
                 notas = [n for n in notas if n.materia == materia]
+
+            if bimestre_texto and bimestre_texto != "Todos":
+                bimestre = int(bimestre_texto.split()[-1])
+                notas = [n for n in notas if n.bimestre == bimestre]
 
         except (ValueError, RuntimeError, sqlite3.Error) as e:
             self.lbl_error.setText(str(e))
@@ -283,22 +311,39 @@ class VistaNotas(QWidget):
         self.lbl_error.clear()
 
     def _actualizar_boletin(self, dni):
-        """Resumen del alumno filtrado: materias y promedio general."""
+        """Resumen del alumno filtrado: notas del bimestre seleccionado,
+        promedio del bimestre y promedio general."""
         if not dni:
             self.lbl_boletin.clear()
             return
 
+        bimestre_texto = self.combo_bimestre_filtro.currentText().strip()
+
         try:
-            notas_dni = Nota.obtener_por_alumno(dni)
-            promedio = Nota.promedio_por_alumno(dni)
+            if bimestre_texto == "Todos":
+                notas_dni = Nota.obtener_por_alumno(dni)
+                promedio = Nota.promedio_por_alumno(dni)
+                etiqueta = "todos los bimestres"
+            else:
+                bimestre = int(bimestre_texto.split()[-1])
+                notas_dni = Nota.obtener_por_alumno_bimestre(dni, bimestre)
+                promedio = Nota.promedio_por_alumno_bimestre(dni, bimestre)
+                etiqueta = f"bimestre {bimestre}"
+
+            promedio_general = Nota.promedio_por_alumno(dni)
         except RuntimeError:
             self.lbl_boletin.clear()
             return
 
         texto_promedio = (
-            f"Promedio {promedio:.1f} sobre {len(notas_dni)} materias"
+            f"Promedio {promedio:.1f}"
             if promedio is not None
-            else "sin notas cargadas"
+            else "sin notas"
+        )
+        texto_general = (
+            f"Promedio general: {promedio_general:.1f}"
+            if promedio_general is not None
+            else "sin notas generales"
         )
 
         detalle = " · ".join(
@@ -306,8 +351,10 @@ class VistaNotas(QWidget):
         )
 
         self.lbl_boletin.setText(
-            f"Boletín de {dni}: {detalle} → {texto_promedio}" if detalle
-            else f"Boletín de {dni}: {texto_promedio}"
+            f"Boletín de {dni} ({etiqueta}): {detalle} → {texto_promedio} | "
+            f"{texto_general}" if detalle
+            else f"Boletín de {dni} ({etiqueta}): {texto_promedio} | "
+            f"{texto_general}"
         )
 
     def _botones_accion(self, nota):
@@ -341,6 +388,7 @@ class VistaNotas(QWidget):
         """Trae la nota al formulario para editarla y guardar."""
         self.entrada_dni.setText(str(nota.dni))
         self.entrada_materia.setText(nota.materia)
+        self.combo_bimestre.setCurrentText(f"Bimestre {nota.bimestre}")
         self.entrada_nota.setText(str(nota.nota))
         self.entrada_comentario.setText(nota.comentario or "")
 
@@ -357,35 +405,39 @@ class VistaNotas(QWidget):
         materia = self.entrada_materia.text().strip()
         valor = self.entrada_nota.text().strip()
         comentario = self.entrada_comentario.text().strip()
+        bimestre_texto = self.combo_bimestre.currentText().strip()
+        bimestre = int(bimestre_texto.split()[-1])
 
         try:
             if not all([dni, materia, valor]):
-                self.lbl_error.setText("DNI, materia y nota son obligatorios.")
+                self.lbl_error.setText("DNI, materia, bimestre y nota son obligatorios.")
                 alerta_error(
                     self, "Error al guardar",
-                    "DNI, materia y nota son obligatorios."
+                    "DNI, materia, bimestre y nota son obligatorios."
                 )
                 return
 
-            # UNIQUE(dni, materia): si ya existe, se actualiza en el lugar.
-            existente = self._buscar_existente(dni, materia)
+            # UNIQUE(dni, materia, bimestre): si ya existe, se actualiza en el lugar.
+            existente = self._buscar_existente(dni, materia, bimestre)
 
             if existente is not None:
                 # int() aca: validar_datos() compara contra el rango y una
                 # cadena tiraria TypeError en vez de ValueError.
                 existente.nota = int(valor)
                 existente.comentario = comentario or None
+                existente.bimestre = bimestre
                 existente.actualizar()
-                mensaje = f"Nota de {materia} actualizada."
+                mensaje = f"Nota de {materia} (bimestre {bimestre}) actualizada."
             else:
                 nuevo = Nota(
                     dni=dni,
                     materia=materia,
                     nota=valor,
-                    comentario=comentario
+                    comentario=comentario,
+                    bimestre=bimestre
                 )
                 nuevo.guardar()
-                mensaje = f"Nota de {materia} guardada."
+                mensaje = f"Nota de {materia} (bimestre {bimestre}) guardada."
 
         except (ValueError, RuntimeError, sqlite3.Error) as e:
             self.lbl_error.setText(str(e))
@@ -402,12 +454,12 @@ class VistaNotas(QWidget):
         self._limpiar_formulario()
         self.cargar_datos()
 
-    def _buscar_existente(self, dni, materia):
+    def _buscar_existente(self, dni, materia, bimestre):
         """Devuelve la Nota ya cargada, o None si todavia no existe."""
-        if not Nota.existe(dni, materia):
+        if not Nota.existe(dni, materia, bimestre):
             return None
 
-        for candidata in Nota.obtener_por_alumno(dni):
+        for candidata in Nota.obtener_por_alumno_bimestre(dni, bimestre):
             if candidata.materia == materia:
                 return candidata
 
@@ -437,6 +489,7 @@ class VistaNotas(QWidget):
     def _limpiar_formulario(self):
         self.entrada_dni.clear()
         self.entrada_materia.clear()
+        self.combo_bimestre.setCurrentIndex(0)
         self.entrada_nota.clear()
         self.entrada_comentario.clear()
         self.lbl_error.clear()

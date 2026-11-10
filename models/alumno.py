@@ -466,11 +466,17 @@ class Alumno:
                     registrar(False)
                     return None
 
-                if not autorizado:
+                if autorizado == 0:
                     registrar(False)
                     raise PermisoDenegadoError(
                         "Tu registro todavía no fue autorizado por un "
                         "profesor o preceptor."
+                    )
+
+                if autorizado == 2:
+                    registrar(False)
+                    raise PermisoDenegadoError(
+                        "Acceso denegado: su cuenta fue denegada."
                     )
 
                 registrar(True)
@@ -580,3 +586,68 @@ class Alumno:
 
         except sqlite3.Error as e:
             raise RuntimeError(f"Error al autorizar alumno: {e}")
+
+    @classmethod
+    def denegar(cls, usuario_autorizante, dni_alumno):
+
+        nivel = usuario_autorizante.get("nivel_permisos", 0) if usuario_autorizante else 0
+
+        if nivel < cls.NIVEL_MINIMO_PARA_AUTORIZAR:
+            raise PermisoDenegadoError(
+                "No tenés permisos para denegar alumnos."
+            )
+
+        try:
+            with obtener_conexion() as conexion:
+                cursor = conexion.cursor()
+
+                cursor.execute(
+                    "UPDATE alumnos SET autorizado = 2 WHERE dni = ?",
+                    (dni_alumno,)
+                )
+
+                conexion.commit()
+                return cursor.rowcount > 0
+
+        except sqlite3.Error as e:
+            raise RuntimeError(f"Error al denegar alumno: {e}")
+
+    @classmethod
+    def obtener_denegados(cls):
+
+        try:
+            with obtener_conexion() as conexion:
+                cursor = conexion.cursor()
+
+                cursor.execute(
+                    """
+                    SELECT dni, nombre, apellido
+                    FROM alumnos
+                    WHERE autorizado = 2
+                    """
+                )
+
+                return cursor.fetchall()
+
+        except sqlite3.Error as e:
+            raise RuntimeError(f"Error al obtener alumnos denegados: {e}")
+
+    @classmethod
+    def obtener_autorizados(cls):
+
+        try:
+            with obtener_conexion() as conexion:
+                cursor = conexion.cursor()
+
+                cursor.execute(
+                    """
+                    SELECT dni, nombre, apellido
+                    FROM alumnos
+                    WHERE autorizado = 1
+                    """
+                )
+
+                return cursor.fetchall()
+
+        except sqlite3.Error as e:
+            raise RuntimeError(f"Error al obtener alumnos autorizados: {e}")

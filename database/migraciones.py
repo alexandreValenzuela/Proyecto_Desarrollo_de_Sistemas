@@ -326,6 +326,67 @@ def migrar_ausencias_sin_duplicados():
     return 1
 
 
+def migrar_notas_a_bimestre():
+    """
+    Agrega la columna bimestre a la tabla notas y backfill a 1.
+
+    SQLite no permite agregar restricciones (UNIQUE, CHECK) con ALTER TABLE,
+    asi que la tabla se reconstruye: nueva columna bimestre, CHECK de rango
+    1-4 y UNIQUE(dni, materia, bimestre). Las filas existentes quedan en
+    bimestre = 1 (primer bimestre), conservando todas las notas previas.
+
+    Idempotente: si la columna ya existe, no hace nada.
+    """
+    with obtener_conexion() as conexion:
+        cursor = conexion.cursor()
+
+        if not _tabla_existe(cursor, "notas"):
+            return 0
+
+        if "bimestre" in _columnas_existentes(cursor, "notas"):
+            # Ya fue migrada (o se creo con el esquema nuevo).
+            return 0
+
+        _reconstruir_tabla(
+            cursor,
+            "notas",
+            '''
+            CREATE TABLE {tabla} (
+                nota_id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                dni INTEGER NOT NULL,
+
+                nota INTEGER NOT NULL
+                CHECK(nota BETWEEN 1 AND 10),
+
+                materia TEXT NOT NULL
+                CHECK(length(materia) <= 255),
+
+                bimestre INTEGER NOT NULL DEFAULT 1
+                CHECK(bimestre BETWEEN 1 AND 4),
+
+                comentario TEXT,
+
+                FOREIGN KEY(dni)
+                REFERENCES alumnos(dni),
+
+                UNIQUE(dni, materia, bimestre)
+            )
+            ''',
+            [("nota_id", "nota_id"), ("dni", "dni"), ("nota", "nota"),
+             ("materia", "materia"), ("comentario", "comentario")]
+        )
+
+        # Indice para buscar notas por alumno y bimestre.
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_notas_dni_bimestre ON notas(dni, bimestre)"
+        )
+
+        conexion.commit()
+
+    return 1
+
+
 def _cursos_nivel_grupo():
     """Genera los 26 cursos: N1G1..N1G6 y N2G1..N6G4."""
     grupos_por_defecto = 4
@@ -450,3 +511,4 @@ def migraciones():
     migrar_curso_a_nivel_grupo()
     migrar_notas_con_alumno()
     migrar_ausencias_sin_duplicados()
+    migrar_notas_a_bimestre()

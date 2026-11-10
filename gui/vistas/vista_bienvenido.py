@@ -84,11 +84,13 @@ class VistaBienvenido(QWidget):
     def _resumen_staff(self, layout):
         total_alumnos = len(Alumno.obtener_todos())
         pendientes = len(Alumno.obtener_pendientes())
+        denegados = len(Alumno.obtener_denegados())
         total_notas = len(Nota.obtener_todas())
         total_ausencias = len(Ausencia.obtener_todas())
 
         self._linea_resumen(layout, f"Alumnos cargados: {total_alumnos}")
         self._linea_resumen(layout, f"Pendientes de autorizar: {pendientes}")
+        self._linea_resumen(layout, f"Denegados: {denegados}")
         self._linea_resumen(layout, f"Notas cargadas: {total_notas}")
         self._linea_resumen(layout, f"Ausencias registradas: {total_ausencias}")
 

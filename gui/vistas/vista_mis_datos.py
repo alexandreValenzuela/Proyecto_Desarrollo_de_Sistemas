@@ -116,5 +116,10 @@ class VistaMisDatos(QWidget):
         self.campos["telefono"].setText(str(alumno.telefono or "-"))
         self.campos["direccion"].setText(str(alumno.direccion or "-"))
         self.campos["curso"].setText(curso)
-        estado = "Autorizado" if alumno.autorizado else "Pendiente de autorización"
+        if alumno.autorizado == 1:
+            estado = "Autorizado"
+        elif alumno.autorizado == 2:
+            estado = "Denegado"
+        else:
+            estado = "Pendiente de autorización"
         self.campos["estado"].setText(estado)

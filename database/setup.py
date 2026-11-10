@@ -141,12 +141,15 @@ def inicio():
                 materia TEXT NOT NULL
                 CHECK(length(materia) <= 255),
 
+                bimestre INTEGER NOT NULL
+                CHECK(bimestre BETWEEN 1 AND 4),
+
                 comentario TEXT,
 
                 FOREIGN KEY(dni)
                 REFERENCES alumnos(dni),
 
-                UNIQUE(dni, materia)
+                UNIQUE(dni, materia, bimestre)
             )
             '''
         )

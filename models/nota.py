@@ -16,29 +16,32 @@ class Nota:
     NOTA_MINIMA = 1
     NOTA_MAXIMA = 10
 
-    def __init__(self, dni, materia, nota, comentario=None, nota_id=None):
+    def __init__(self, dni, materia, nota, comentario=None, bimestre=1,
+                 nota_id=None):
         self.nota_id = nota_id
         self.dni = int(dni)
         self.materia = str(materia).strip()
         self.nota = int(nota)
         self.comentario = str(comentario).strip() if comentario else None
+        self.bimestre = int(bimestre)
 
     @classmethod
     def _desde_fila(cls, fila):
         """
         Construye una Nota desde una fila de consulta.
 
-        Los SELECT devuelven las columnas en orden alfabetico
-        (nota_id, comentario, dni, materia, nota), que no es el orden del
-        constructor. Centralizarlo aca evita repetir el mapeo.
+        Los SELECT devuelven las columnas en el orden en que se piden
+        (nota_id, comentario, dni, materia, bimestre, nota), que no es el
+        orden del constructor. Centralizarlo aca evita repetir el mapeo.
         """
-        nota_id, comentario, dni, materia, nota = fila
+        nota_id, comentario, dni, materia, bimestre, nota = fila
 
         return cls(
             dni=dni,
             materia=materia,
             nota=nota,
             comentario=comentario,
+            bimestre=bimestre,
             nota_id=nota_id
         )
 
@@ -69,6 +72,9 @@ class Nota:
         if self.comentario and len(self.comentario) > 255:
             raise ValueError("El comentario no puede superar los 255 caracteres.")
 
+        if not 1 <= self.bimestre <= 4:
+            raise ValueError("El bimestre debe estar entre 1 y 4.")
+
         return True
 
     # -------------------------------------------------------------------------
@@ -85,10 +91,11 @@ class Nota:
 
                 cursor.execute(
                     """
-                    INSERT INTO notas (dni, nota, materia, comentario)
-                    VALUES (?, ?, ?, ?)
+                    INSERT INTO notas (dni, nota, materia, comentario, bimestre)
+                    VALUES (?, ?, ?, ?, ?)
                     """,
-                    (self.dni, self.nota, self.materia, self.comentario)
+                    (self.dni, self.nota, self.materia, self.comentario,
+                     self.bimestre)
                 )
 
                 self.nota_id = cursor.lastrowid
@@ -128,11 +135,11 @@ class Nota:
                 cursor.execute(
                     """
                     UPDATE notas
-                    SET dni = ?, nota = ?, materia = ?, comentario = ?
+                    SET dni = ?, nota = ?, materia = ?, comentario = ?, bimestre = ?
                     WHERE nota_id = ?
                     """,
                     (self.dni, self.nota, self.materia, self.comentario,
-                     self.nota_id)
+                     self.bimestre, self.nota_id)
                 )
 
                 conexion.commit()
@@ -158,7 +165,7 @@ class Nota:
 
                 cursor.execute(
                     """
-                    SELECT nota_id, comentario, dni, materia, nota
+                    SELECT nota_id, comentario, dni, materia, bimestre, nota
                     FROM notas
                     WHERE nota_id = ?
                     """,
@@ -184,10 +191,10 @@ class Nota:
 
                 cursor.execute(
                     """
-                    SELECT nota_id, comentario, dni, materia, nota
+                    SELECT nota_id, comentario, dni, materia, bimestre, nota
                     FROM notas
                     WHERE dni = ?
-                    ORDER BY materia
+                    ORDER BY bimestre, materia
                     """,
                     (int(dni),)
                 )
@@ -198,6 +205,31 @@ class Nota:
             raise RuntimeError(f"Error al obtener notas del alumno: {e}")
 
     @classmethod
+    def obtener_por_alumno_bimestre(cls, dni, bimestre):
+        """Notas de un alumno para un bimestre determinado (1 a 4)."""
+
+        try:
+            with obtener_conexion() as conexion:
+                cursor = conexion.cursor()
+
+                cursor.execute(
+                    """
+                    SELECT nota_id, comentario, dni, materia, bimestre, nota
+                    FROM notas
+                    WHERE dni = ? AND bimestre = ?
+                    ORDER BY materia
+                    """,
+                    (int(dni), int(bimestre))
+                )
+
+                return [cls._desde_fila(fila) for fila in cursor.fetchall()]
+
+        except sqlite3.Error as e:
+            raise RuntimeError(
+                f"Error al obtener notas del alumno del bimestre {bimestre}: {e}"
+            )
+
+    @classmethod
     def obtener_todas(cls):
 
         try:
@@ -206,9 +238,9 @@ class Nota:
 
                 cursor.execute(
                     """
-                    SELECT nota_id, comentario, dni, materia, nota
+                    SELECT nota_id, comentario, dni, materia, bimestre, nota
                     FROM notas
-                    ORDER BY dni, materia
+                    ORDER BY dni, bimestre, materia
                     """
                 )
 
@@ -250,7 +282,17 @@ class Nota:
         return sum(n.nota for n in notas) / len(notas)
 
     @classmethod
-    def existe(cls, dni, materia):
+    def promedio_por_alumno_bimestre(cls, dni, bimestre):
+        """Promedio de las notas de un alumno en un bimestre, o None si no tiene."""
+        notas = cls.obtener_por_alumno_bimestre(dni, bimestre)
+
+        if not notas:
+            return None
+
+        return sum(n.nota for n in notas) / len(notas)
+
+    @classmethod
+    def existe(cls, dni, materia, bimestre):
 
         try:
             with obtener_conexion() as conexion:
@@ -260,9 +302,9 @@ class Nota:
                     """
                     SELECT nota_id
                     FROM notas
-                    WHERE dni = ? AND materia = ?
+                    WHERE dni = ? AND materia = ? AND bimestre = ?
                     """,
-                    (int(dni), str(materia).strip())
+                    (int(dni), str(materia).strip(), int(bimestre))
                 )
 
                 return cursor.fetchone() is not None

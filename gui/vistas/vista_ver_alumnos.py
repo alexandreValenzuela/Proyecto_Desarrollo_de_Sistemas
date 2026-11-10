@@ -126,7 +126,12 @@ class VistaVerAlumnos(QWidget):
                 QTableWidgetItem(str(curso_val) if curso_val else "Sin Asignar")
             )
 
-            estado = "Autorizado" if aut_val == 1 else "Pendiente"
+            if aut_val == 1:
+                estado = "Autorizado"
+            elif aut_val == 2:
+                estado = "Denegado"
+            else:
+                estado = "Pendiente"
             self.tabla.setItem(row_idx, 4, QTableWidgetItem(estado))
 
             self.tabla.setItem(row_idx, 5, QTableWidgetItem(""))

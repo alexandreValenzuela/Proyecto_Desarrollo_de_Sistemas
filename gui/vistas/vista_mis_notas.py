@@ -69,15 +69,24 @@ class VistaMisNotas(QWidget):
         layout.addWidget(self.lbl_error)
 
         self.tabla = QTableWidget()
-        self.tabla.setColumnCount(3)
-        self.tabla.setHorizontalHeaderLabels(["Materia", "Nota", "Comentario"])
+        self.tabla.setColumnCount(4)
+        self.tabla.setHorizontalHeaderLabels(["Materia", "Bimestre", "Nota", "Comentario"])
         self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tabla.setSelectionBehavior(QTableWidget.SelectRows)
         self.tabla.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tabla.setMinimumSize(700, 400)
         layout.addWidget(self.tabla)
 
-        # Promedio general (siempre sobre todas las materias).
+        # Desglose por bimestre: notas y promedio de cada uno.
+        self.lbl_por_bimestre = QLabel("")
+        self.lbl_por_bimestre.setObjectName("ResumenLinea")
+        self.lbl_por_bimestre.setAlignment(Qt.AlignCenter)
+        self.lbl_por_bimestre.setStyleSheet(
+            "font-size: 18px; margin-top: 8px;"
+        )
+        layout.addWidget(self.lbl_por_bimestre)
+
+        # Promedio general (siempre sobre todas las materias y bimestres).
         self.lbl_promedio = QLabel("")
         self.lbl_promedio.setObjectName("ResumenLinea")
         self.lbl_promedio.setAlignment(Qt.AlignCenter)
@@ -115,21 +124,42 @@ class VistaMisNotas(QWidget):
 
         filtro = self.combo_materia.currentText().strip()
         if filtro and filtro != "Todas las materias":
-            notas = [n for n in notas if n.materia == filtro]
+            notas_mostradas = [n for n in notas if n.materia == filtro]
+        else:
+            notas_mostradas = notas
 
         self.tabla.setRowCount(0)
         self.lbl_error.clear()
 
-        for row_idx, nota in enumerate(notas):
+        for row_idx, nota in enumerate(notas_mostradas):
             self.tabla.insertRow(row_idx)
             self.tabla.setItem(row_idx, 0, QTableWidgetItem(nota.materia))
-            self.tabla.setItem(row_idx, 1, QTableWidgetItem(str(nota.nota)))
+            self.tabla.setItem(row_idx, 1, QTableWidgetItem(str(nota.bimestre)))
+            self.tabla.setItem(row_idx, 2, QTableWidgetItem(str(nota.nota)))
             self.tabla.setItem(
-                row_idx, 2, QTableWidgetItem(nota.comentario or "")
+                row_idx, 3, QTableWidgetItem(nota.comentario or "")
             )
 
         if not notas:
             self.lbl_error.setText("Todavía no tenés notas cargadas.")
+
+        # Desglose por bimestre: notas y promedio de cada uno, sobre todas
+        # las notas del alumno (independiente del filtro de materia).
+        lineas_bimestre = []
+        for bimestre in range(1, 5):
+            notas_bimestre = [n for n in notas if n.bimestre == bimestre]
+            if notas_bimestre:
+                promedio_b = sum(n.nota for n in notas_bimestre) / len(notas_bimestre)
+                detalle = " · ".join(
+                    f"{n.materia} {n.nota}" for n in notas_bimestre
+                )
+                lineas_bimestre.append(
+                    f"Bimestre {bimestre}: {detalle} → {promedio_b:.1f}"
+                )
+            else:
+                lineas_bimestre.append(f"Bimestre {bimestre}: sin notas")
+
+        self.lbl_por_bimestre.setText("   |   ".join(lineas_bimestre))
 
         texto_promedio = self._texto_promedio(dni)
         self.lbl_promedio.setText(texto_promedio)

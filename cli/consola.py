@@ -77,19 +77,19 @@ def accion_listar_notas(usuario, dni):
         return
 
     for nota in notas:
-        detalle = f"[{nota.materia}] {nota.nota}"
+        detalle = f"[B{nota.bimestre}][{nota.materia}] {nota.nota}"
         if nota.comentario:
             detalle += f" - {nota.comentario}"
         print(detalle)
 
 
 @requiere_permiso(5)
-def accion_cargar_nota(usuario, dni, materia, nota, comentario):
-    # UNIQUE(dni, materia): si ya existe, se actualiza en el lugar.
+def accion_cargar_nota(usuario, dni, materia, nota, comentario, bimestre):
+    # UNIQUE(dni, materia, bimestre): si ya existe, se actualiza en el lugar.
     existente = None
 
-    if Nota.existe(dni, materia):
-        for candidata in Nota.obtener_por_alumno(dni):
+    if Nota.existe(dni, materia, bimestre):
+        for candidata in Nota.obtener_por_alumno_bimestre(dni, bimestre):
             if candidata.materia == materia:
                 existente = candidata
                 break
@@ -97,14 +97,16 @@ def accion_cargar_nota(usuario, dni, materia, nota, comentario):
     if existente is not None:
         existente.nota = int(nota)
         existente.comentario = comentario or None
+        existente.bimestre = bimestre
         existente.actualizar()
-        print(f"Nota de {materia} actualizada.")
+        print(f"Nota de {materia} (bimestre {bimestre}) actualizada.")
     else:
         nueva = Nota(
-            dni=dni, materia=materia, nota=nota, comentario=comentario
+            dni=dni, materia=materia, nota=nota, comentario=comentario,
+            bimestre=bimestre
         )
         nueva.guardar()
-        print(f"Nota de {materia} guardada.")
+        print(f"Nota de {materia} (bimestre {bimestre}) guardada.")
 
 
 @requiere_permiso(5)
@@ -235,7 +237,8 @@ def _ejecutar_opcion(usuario, opcion):
             materia = input("Materia: ").strip()
             nota = int(input("Nota: "))
             comentario = input("Comentario (opcional; Enter para omitir): ").strip()
-            accion_cargar_nota(usuario, dni, materia, nota, comentario)
+            bimestre = int(input("Bimestre (1-4): "))
+            accion_cargar_nota(usuario, dni, materia, nota, comentario, bimestre)
 
         elif opcion == "9":
             nota_id = int(input("ID de la nota: "))
