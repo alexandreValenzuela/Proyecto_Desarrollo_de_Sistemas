@@ -131,29 +131,29 @@ class VentanaPrincipal(QMainWindow):
         layout.addSpacing(40)
 
         # Botones del menu
-        self.btn_crear = PrimaryButton(
+        self.btn_crear = SecondaryButton(
             "Crear Alumno", lambda: self._abrir_seccion(VISTA_CARGAR_ALUMNOS), 40
         )
-        self.btn_crear.setMinimumSize(400, 80)
+        self.btn_crear.setFixedSize(520, 80)
         layout.addLayout(self._centrar(self.btn_crear))
 
         self.btn_ver_menu = SecondaryButton(
             "Ver Alumnos", lambda: self._abrir_seccion(VISTA_VER_ALUMNOS), 40
         )
-        self.btn_ver_menu.setMinimumSize(400, 80)
+        self.btn_ver_menu.setFixedSize(520, 80)
         layout.addLayout(self._centrar(self.btn_ver_menu))
 
         self.btn_autorizar_menu = SecondaryButton(
             "Autorizar Alumnos", lambda: self._abrir_seccion(VISTA_AUTORIZAR), 40
         )
-        self.btn_autorizar_menu.setMinimumSize(400, 80)
+        self.btn_autorizar_menu.setFixedSize(520, 80)
         layout.addLayout(self._centrar(self.btn_autorizar_menu))
 
         self.btn_personal_menu = SecondaryButton(
             "Registrar Personal",
             lambda: self._abrir_seccion(VISTA_REGISTRAR_PERSONAL), 40
         )
-        self.btn_personal_menu.setMinimumSize(400, 80)
+        self.btn_personal_menu.setFixedSize(520, 80)
         layout.addLayout(self._centrar(self.btn_personal_menu))
 
         # Secciones restringidas: ocultas, nunca deshabilitadas.
@@ -171,7 +171,7 @@ class VentanaPrincipal(QMainWindow):
             lambda: self._abrir_seccion(VISTA_MATERIAS),
             40
         )
-        self.btn_materias_menu.setMinimumSize(400, 80)
+        self.btn_materias_menu.setFixedSize(520, 80)
         self.btn_materias_menu.setVisible(
             tiene_permiso(self.usuario, NIVEL_MATERIAS)
         )
@@ -371,17 +371,9 @@ class VentanaPrincipal(QMainWindow):
 
         layout.addStretch()
 
-        # Volver al Menu
-        self.btn_menu = QPushButton("Volver al Menu")
-        self.btn_menu.setObjectName("BtnSidebarItem")
-        # El alumno entra directo al dashboard: volver al menu no le aporta.
-        self.btn_menu.setVisible(tiene_permiso(self.usuario, NIVEL_ALUMNOS))
-        self.btn_menu.clicked.connect(self._volver_al_menu_central)
-        layout.addWidget(self.btn_menu)
-
         # Cerrar Sesion
         self.btn_logout = QPushButton("Cerrar Sesion")
-        self.btn_logout.setObjectName("BtnSidebarItem")
+        self.btn_logout.setObjectName("BtnSidebarLogout")
         self.btn_logout.clicked.connect(self._ejecutar_logout)
         layout.addWidget(self.btn_logout)
 

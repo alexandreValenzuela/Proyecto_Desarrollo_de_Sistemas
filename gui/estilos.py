@@ -249,15 +249,15 @@ QHeaderView::section {
 QFrame#SidebarFrame {
     background-color: #1E293B;
     border-right: 1px solid #334155;
-    min-width: 250px;
-    max-width: 250px;
+    min-width: 290px;
+    max-width: 320px;
 }
 
 QLabel#SidebarHeader {
     color: #38BDF8;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: bold;
-    padding: 20px 16px 10px 16px;
+    padding: 16px 12px 10px 12px;
     background: transparent;
 }
 
@@ -290,6 +290,25 @@ QPushButton#BtnSidebarItem:checked {
     background-color: #2563EB;
     color: #FFFFFF;
     font-weight: bold;
+}
+
+QPushButton#BtnSidebarLogout {
+    background-color: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 6px;
+    color: #FCA5A5;
+    font-size: 13px;
+    font-weight: bold;
+    text-align: center;
+    padding: 6px 12px;
+    min-height: 38px;
+    margin: 8px 8px 4px 8px;
+    font-family: 'Cascadia Code', monospace;
+}
+QPushButton#BtnSidebarLogout:hover {
+    background-color: #DC2626;
+    border-color: #EF4444;
+    color: #FFFFFF;
 }
 
 /* ============================================================================

@@ -4,8 +4,8 @@ Alta de administradores/profesores/preceptores (nivel_permisos >= 10).
 """
 import sqlite3
 
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                                QLineEdit, QComboBox, QPushButton)
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
+                                QLabel, QLineEdit, QComboBox, QPushButton)
 from PySide6.QtCore import Qt
 
 from gui.componentes import (alerta_error, alerta_exito, SectionTitle,
@@ -28,69 +28,59 @@ class VistaRegistrarPersonal(QWidget):
 
     def _construir_interfaz(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(16)
 
         # Titulo
         lbl = SectionTitle("Registro de Personal", 40)
         layout.addWidget(lbl)
 
-        # Formulario
-        form_layout = QVBoxLayout()
-        form_layout.setAlignment(Qt.AlignCenter)
-        form_layout.setSpacing(20)
+        # Formulario en cuadrícula de 2 columnas
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(24)
+        grid.setVerticalSpacing(12)
+        grid.setAlignment(Qt.AlignCenter)
 
-        form_layout.addWidget(self._label("Nombre de Usuario"))
+        def _crear_campo_layout(label_widget, input_widget):
+            box = QVBoxLayout()
+            box.setSpacing(4)
+            box.addWidget(label_widget)
+            box.addWidget(input_widget)
+            return box
+
+        # Fila 0: Nombre y Apellido
         self.entrada_nombre = QLineEdit()
         self.entrada_nombre.setPlaceholderText("Nombre")
-        self.entrada_nombre.setMinimumSize(450, 50)
-        self.entrada_nombre.setStyleSheet("font-size: 20px;")
-        contenedor = QHBoxLayout()
-        contenedor.setAlignment(Qt.AlignCenter)
-        contenedor.addWidget(self.entrada_nombre)
-        form_layout.addLayout(contenedor)
+        self.entrada_nombre.setMinimumSize(320, 42)
+        self.entrada_nombre.setStyleSheet("font-size: 16px;")
+        grid.addLayout(_crear_campo_layout(self._label("Nombre de Usuario"), self.entrada_nombre), 0, 0)
 
-        form_layout.addWidget(self._label("Apellido"))
         self.entrada_apellido = QLineEdit()
         self.entrada_apellido.setPlaceholderText("Apellido")
-        self.entrada_apellido.setMinimumSize(450, 50)
-        self.entrada_apellido.setStyleSheet("font-size: 20px;")
-        contenedor2 = QHBoxLayout()
-        contenedor2.setAlignment(Qt.AlignCenter)
-        contenedor2.addWidget(self.entrada_apellido)
-        form_layout.addLayout(contenedor2)
+        self.entrada_apellido.setMinimumSize(320, 42)
+        self.entrada_apellido.setStyleSheet("font-size: 16px;")
+        grid.addLayout(_crear_campo_layout(self._label("Apellido"), self.entrada_apellido), 0, 1)
 
-        form_layout.addWidget(self._label("DNI"))
+        # Fila 1: DNI y Dirección
         self.entrada_dni = QLineEdit()
         self.entrada_dni.setPlaceholderText("Ej: 55555555")
-        self.entrada_dni.setMinimumSize(450, 50)
-        self.entrada_dni.setStyleSheet("font-size: 20px;")
-        contenedor3 = QHBoxLayout()
-        contenedor3.setAlignment(Qt.AlignCenter)
-        contenedor3.addWidget(self.entrada_dni)
-        form_layout.addLayout(contenedor3)
+        self.entrada_dni.setMinimumSize(320, 42)
+        self.entrada_dni.setStyleSheet("font-size: 16px;")
+        grid.addLayout(_crear_campo_layout(self._label("DNI"), self.entrada_dni), 1, 0)
 
-        form_layout.addWidget(self._label("Direccion"))
         self.entrada_direccion = QLineEdit()
         self.entrada_direccion.setPlaceholderText("Direccion")
-        self.entrada_direccion.setMinimumSize(450, 50)
-        self.entrada_direccion.setStyleSheet("font-size: 20px;")
-        contenedor4 = QHBoxLayout()
-        contenedor4.setAlignment(Qt.AlignCenter)
-        contenedor4.addWidget(self.entrada_direccion)
-        form_layout.addLayout(contenedor4)
+        self.entrada_direccion.setMinimumSize(320, 42)
+        self.entrada_direccion.setStyleSheet("font-size: 16px;")
+        grid.addLayout(_crear_campo_layout(self._label("Direccion"), self.entrada_direccion), 1, 1)
 
-        form_layout.addWidget(self._label("Telefono"))
+        # Fila 2: Teléfono y Cargo
         self.entrada_telefono = QLineEdit()
         self.entrada_telefono.setPlaceholderText("Solo numeros")
-        self.entrada_telefono.setMinimumSize(450, 50)
-        self.entrada_telefono.setStyleSheet("font-size: 20px;")
-        contenedor5 = QHBoxLayout()
-        contenedor5.setAlignment(Qt.AlignCenter)
-        contenedor5.addWidget(self.entrada_telefono)
-        form_layout.addLayout(contenedor5)
+        self.entrada_telefono.setMinimumSize(320, 42)
+        self.entrada_telefono.setStyleSheet("font-size: 16px;")
+        grid.addLayout(_crear_campo_layout(self._label("Telefono"), self.entrada_telefono), 2, 0)
 
-        form_layout.addWidget(self._label("Cargo"))
         self.combo_cargo = QComboBox()
         self.combo_cargo.addItem("Seleccionar cargo", None)
         try:
@@ -99,30 +89,27 @@ class VistaRegistrarPersonal(QWidget):
                 self.combo_cargo.addItem(c.cargo, c.cargo_id)
         except Exception:
             pass
-        self.combo_cargo.setMinimumSize(450, 50)
-        self.combo_cargo.setStyleSheet("font-size: 20px;")
-        contenedor6 = QHBoxLayout()
-        contenedor6.setAlignment(Qt.AlignCenter)
-        contenedor6.addWidget(self.combo_cargo)
-        form_layout.addLayout(contenedor6)
+        self.combo_cargo.setMinimumSize(320, 42)
+        self.combo_cargo.setStyleSheet("font-size: 16px;")
+        grid.addLayout(_crear_campo_layout(self._label("Cargo"), self.combo_cargo), 2, 1)
 
-        form_layout.addWidget(self._label("Contrasena"))
+        # Fila 3: Contraseña (columna 0)
         self.entrada_password = QLineEdit()
         self.entrada_password.setPlaceholderText("Contrasena")
         self.entrada_password.setEchoMode(QLineEdit.Password)
-        self.entrada_password.setMinimumSize(450, 50)
-        self.entrada_password.setStyleSheet("font-size: 20px;")
-        contenedor7 = QHBoxLayout()
-        contenedor7.setAlignment(Qt.AlignCenter)
-        contenedor7.addWidget(self.entrada_password)
-        form_layout.addLayout(contenedor7)
+        self.entrada_password.setMinimumSize(320, 42)
+        self.entrada_password.setStyleSheet("font-size: 16px;")
+        grid.addLayout(_crear_campo_layout(self._label("Contrasena"), self.entrada_password), 3, 0)
 
-        layout.addLayout(form_layout)
+        contenedor_grid = QHBoxLayout()
+        contenedor_grid.setAlignment(Qt.AlignCenter)
+        contenedor_grid.addLayout(grid)
+        layout.addLayout(contenedor_grid)
 
         # Error
         self.lbl_error = QLabel("")
         self.lbl_error.setAlignment(Qt.AlignCenter)
-        self.lbl_error.setStyleSheet("color: #ff0000; font-size: 16px; font-weight: bold;")
+        self.lbl_error.setStyleSheet("color: #ff0000; font-size: 15px; font-weight: bold;")
         layout.addWidget(self.lbl_error)
 
         # Botones
@@ -141,10 +128,10 @@ class VistaRegistrarPersonal(QWidget):
 
     def _label(self, texto):
         lbl = QLabel(texto)
-        lbl.setAlignment(Qt.AlignCenter)
         lbl.setStyleSheet("""
             font-family: 'Cascadia Code', 'Consolas', monospace;
-            font-size: 20px;
+            font-size: 15px;
+            font-weight: bold;
             color: #000000;
             background: transparent;
         """)

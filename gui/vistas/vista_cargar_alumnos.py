@@ -5,8 +5,8 @@ Dimensiones y estilo segun Draw.io SSOT.
 """
 import sqlite3
 
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                                QLineEdit, QComboBox, QPushButton)
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
+                                QLabel, QLineEdit, QComboBox, QPushButton)
 from PySide6.QtCore import Qt
 
 from gui.componentes import (alerta_error, alerta_exito, SectionTitle,
@@ -36,79 +36,101 @@ class VistaCargarAlumnos(QWidget):
 
     def _construir_interfaz(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(20)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(16)
 
         # Titulo
         lbl = SectionTitle("Registro de Alumno", 40)
         layout.addWidget(lbl)
 
-        # Formulario centrado
-        form = QVBoxLayout()
-        form.setAlignment(Qt.AlignCenter)
-        form.setSpacing(20)
+        # Formulario centrado en cuadrícula 2 columnas
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(24)
+        grid.setVerticalSpacing(12)
+        grid.setAlignment(Qt.AlignCenter)
+
+        def _crear_label_form(texto):
+            label = QLabel(texto)
+            label.setStyleSheet("""
+                font-family: 'Cascadia Code', 'Consolas', monospace;
+                font-size: 15px;
+                font-weight: bold;
+                color: #000000;
+                background: transparent;
+            """)
+            return label
+
+        def _crear_campo_layout(label_widget, input_widget):
+            box = QVBoxLayout()
+            box.setSpacing(4)
+            box.addWidget(label_widget)
+            box.addWidget(input_widget)
+            return box
 
         self.entradas = {}
-        for texto, key in CAMPOS:
-            lbl_campo = QLabel(texto)
-            lbl_campo.setStyleSheet("""
-                font-family: 'Cascadia Code', 'Consolas', monospace;
-                font-size: 20px; color: #000000; background: transparent;
-            """)
-            form.addWidget(lbl_campo, alignment=Qt.AlignCenter)
+        # Fila 0: Nombre y Apellido
+        self.entradas["nombre"] = QLineEdit()
+        self.entradas["nombre"].setPlaceholderText("Nombre Completo")
+        self.entradas["nombre"].setMinimumSize(320, 42)
+        self.entradas["nombre"].setStyleSheet("font-size: 16px;")
+        grid.addLayout(_crear_campo_layout(_crear_label_form("Nombre Completo"), self.entradas["nombre"]), 0, 0)
 
-            entrada = QLineEdit()
-            entrada.setPlaceholderText(texto)
-            entrada.setMinimumSize(450, 50)
-            entrada.setStyleSheet("font-size: 20px;")
-            self.entradas[key] = entrada
-            contenedor = QHBoxLayout()
-            contenedor.setAlignment(Qt.AlignCenter)
-            contenedor.addWidget(entrada)
-            form.addLayout(contenedor)
+        self.entradas["apellido"] = QLineEdit()
+        self.entradas["apellido"].setPlaceholderText("Apellido")
+        self.entradas["apellido"].setMinimumSize(320, 42)
+        self.entradas["apellido"].setStyleSheet("font-size: 16px;")
+        grid.addLayout(_crear_campo_layout(_crear_label_form("Apellido"), self.entradas["apellido"]), 0, 1)
 
-        # Curso (ComboBox)
-        lbl_curso = QLabel("Curso")
-        lbl_curso.setStyleSheet("""
-            font-family: 'Cascadia Code', 'Consolas', monospace;
-            font-size: 20px; color: #000000; background: transparent;
-        """)
-        form.addWidget(lbl_curso, alignment=Qt.AlignCenter)
+        # Fila 1: DNI y Fecha de Nacimiento
+        self.entradas["dni"] = QLineEdit()
+        self.entradas["dni"].setPlaceholderText("DNI / Documento")
+        self.entradas["dni"].setMinimumSize(320, 42)
+        self.entradas["dni"].setStyleSheet("font-size: 16px;")
+        grid.addLayout(_crear_campo_layout(_crear_label_form("DNI / Documento"), self.entradas["dni"]), 1, 0)
 
+        self.entradas["fecha_nacimiento"] = QLineEdit()
+        self.entradas["fecha_nacimiento"].setPlaceholderText("AAAA-MM-DD")
+        self.entradas["fecha_nacimiento"].setMinimumSize(320, 42)
+        self.entradas["fecha_nacimiento"].setStyleSheet("font-size: 16px;")
+        grid.addLayout(_crear_campo_layout(_crear_label_form("Fecha de Nacimiento (AAAA-MM-DD)"), self.entradas["fecha_nacimiento"]), 1, 1)
+
+        # Fila 2: Dirección y Teléfono
+        self.entradas["direccion"] = QLineEdit()
+        self.entradas["direccion"].setPlaceholderText("Dirección")
+        self.entradas["direccion"].setMinimumSize(320, 42)
+        self.entradas["direccion"].setStyleSheet("font-size: 16px;")
+        grid.addLayout(_crear_campo_layout(_crear_label_form("Dirección"), self.entradas["direccion"]), 2, 0)
+
+        self.entradas["telefono"] = QLineEdit()
+        self.entradas["telefono"].setPlaceholderText("Teléfono")
+        self.entradas["telefono"].setMinimumSize(320, 42)
+        self.entradas["telefono"].setStyleSheet("font-size: 16px;")
+        grid.addLayout(_crear_campo_layout(_crear_label_form("Teléfono"), self.entradas["telefono"]), 2, 1)
+
+        # Fila 3: Curso y Contraseña
         self.combo_curso = QComboBox()
         self.combo_curso.addItem("Seleccionar curso", None)
-        self.combo_curso.setMinimumSize(450, 50)
-        self.combo_curso.setStyleSheet("font-size: 20px;")
+        self.combo_curso.setMinimumSize(320, 42)
+        self.combo_curso.setStyleSheet("font-size: 16px;")
         self._poblar_combo_cursos()
-        contenedor_curso = QHBoxLayout()
-        contenedor_curso.setAlignment(Qt.AlignCenter)
-        contenedor_curso.addWidget(self.combo_curso)
-        form.addLayout(contenedor_curso)
-
-        # Contrasena
-        lbl_pass = QLabel("Contrasena")
-        lbl_pass.setStyleSheet("""
-            font-family: 'Cascadia Code', 'Consolas', monospace;
-            font-size: 20px; color: #000000; background: transparent;
-        """)
-        form.addWidget(lbl_pass, alignment=Qt.AlignCenter)
+        grid.addLayout(_crear_campo_layout(_crear_label_form("Curso"), self.combo_curso), 3, 0)
 
         self.entrada_password = QLineEdit()
-        self.entrada_password.setPlaceholderText("Contrasena")
+        self.entrada_password.setPlaceholderText("Contraseña")
         self.entrada_password.setEchoMode(QLineEdit.Password)
-        self.entrada_password.setMinimumSize(450, 50)
-        self.entrada_password.setStyleSheet("font-size: 20px;")
-        contenedor_pass = QHBoxLayout()
-        contenedor_pass.setAlignment(Qt.AlignCenter)
-        contenedor_pass.addWidget(self.entrada_password)
-        form.addLayout(contenedor_pass)
+        self.entrada_password.setMinimumSize(320, 42)
+        self.entrada_password.setStyleSheet("font-size: 16px;")
+        grid.addLayout(_crear_campo_layout(_crear_label_form("Contraseña"), self.entrada_password), 3, 1)
 
-        layout.addLayout(form)
+        contenedor_grid = QHBoxLayout()
+        contenedor_grid.setAlignment(Qt.AlignCenter)
+        contenedor_grid.addLayout(grid)
+        layout.addLayout(contenedor_grid)
 
         # Error
         self.lbl_error = QLabel("")
         self.lbl_error.setAlignment(Qt.AlignCenter)
-        self.lbl_error.setStyleSheet("color: #ff0000; font-size: 16px; font-weight: bold;")
+        self.lbl_error.setStyleSheet("color: #ff0000; font-size: 15px; font-weight: bold;")
         layout.addWidget(self.lbl_error)
 
         # Botones
